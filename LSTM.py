@@ -4,6 +4,7 @@ import copy
 import matplotlib.pyplot as plt
 import requests
 import re
+import random
 
 from fontTools.misc.plistlib import end_data
 from spellchecker import SpellChecker
@@ -132,12 +133,13 @@ def getTextFromY(Ygen, index_to_character):
     chars = [index_to_character[i.item()] for i in indices]
     return ''.join(chars)
 
-def plot_smooth_loss(smooth_losses):
+def plot_smooth_loss(smooth_losses, validation_losses, validation_iterations):
     update_steps = range(len(smooth_losses))
 
     plt.figure(figsize=(6, 4))
     # Plot smooth loss
     plt.plot(update_steps, smooth_losses, label='Smooth Loss')
+    plt.plot(validation_iterations, validation_losses, label='Validation Loss')
     plt.xlabel('Update Steps')
     plt.ylabel('Smooth Loss')
     plt.title('Smooth Loss')
@@ -270,7 +272,7 @@ def backwardPassUsingTorch(y, fp_data, torch_network):
 
     return grads
 
-def AdamOptimizer(poems, char_to_ind, ind_to_char, GDparams, init_net, rng, print_loss = False, print_text_before = 1000):
+def AdamOptimizer(poems, validation_set, char_to_ind, ind_to_char, GDparams, init_net, rng, print_loss = False, print_text_before = 1000):
     seq_length = GDparams['seq_length']
     num_iterations = GDparams['num_iterations']
     eta = GDparams['eta']
@@ -296,9 +298,12 @@ def AdamOptimizer(poems, char_to_ind, ind_to_char, GDparams, init_net, rng, prin
 
     smooth_loss = 0
     smooth_losses = []
-
+    validation_losses = []
+    validation_iterations = []
     e = 0
     poem = 0
+    while poem in validation_set:
+        poem += 1
     epoch = 1
 
     print("Synthesised text before first update step")
@@ -327,6 +332,20 @@ def AdamOptimizer(poems, char_to_ind, ind_to_char, GDparams, init_net, rng, prin
             smooth_loss = 0.999*smooth_loss + 0.001*compute_loss(fp_data_sequence,y)
         smooth_losses.append(smooth_loss)
 
+        if iter%250==0:
+            loss_validation = 0
+            for validation_poem_nr in validation_set:
+                h0val = torch.zeros(m, dtype=torch.float64)
+                c0val = torch.zeros(m, dtype=torch.float64)
+                validation_poem = poems[validation_poem_nr]
+                X_val,_ = encode_sequence(validation_poem[:len(validation_poem)-1], char_to_ind)
+                Y_val, y_val = encode_sequence(validation_poem[1:len(validation_poem)], char_to_ind)
+                fp_validation_poem = forwardPassUsingTorch(X_val,h0val, c0val, RNN)
+                loss_validation += compute_loss(fp_validation_poem, y_val)
+            loss_validation = loss_validation/len(validation_set)
+            validation_losses.append(loss_validation)
+            validation_iterations.append(iter)
+
         for kk in grads.keys():
             AdamParams[kk]['m'] = beta_1*AdamParams[kk]['m']+(1-beta_1)*grads[kk]
             AdamParams[kk]['v'] = beta_2*AdamParams[kk]['v'] + (1-beta_2)*(grads[kk]**2)
@@ -337,8 +356,12 @@ def AdamOptimizer(poems, char_to_ind, ind_to_char, GDparams, init_net, rng, prin
 
         if go_to_next_poem:
             poem += 1
+            while poem in validation_set:
+                poem += 1
             if poem >= len(poems):
                 poem = 0
+                while poem in validation_set:
+                    poem += 1
             e = 0
             hprev = torch.zeros(m, dtype = torch.float64)
             cprev = torch.zeros(m, dtype = torch.float64)
@@ -348,15 +371,16 @@ def AdamOptimizer(poems, char_to_ind, ind_to_char, GDparams, init_net, rng, prin
 
         if iter%100==0 and print_loss:
             print("After " + str(iter) + " iterations the smooth loss is " +str(smooth_loss))
-
+        if iter%250==0 and print_loss:
+            print("After " + str(iter) + " iterations the validation loss is " +str(validation_losses[-1]))
         if (iter+1)%print_text_before==0:
             print("Synthesised text before " + str((iter+1)) + " update steps")
             print(getTextFromY(synthesiseTextFromRNN(hprev, cprev,200, RNN, rng), ind_to_char))
 
 
-    plot_smooth_loss(smooth_losses)
+    plot_smooth_loss(smooth_losses, validation_losses, validation_iterations)
 
-    return RNN
+    return RNN, validation_losses[-1]
 
 
 def main():
@@ -383,17 +407,26 @@ def main():
 
     rng = initializeRNG()
 
-    m = 100
+    m = [25,50,100,200]
     seq_length = 25
     eta = 0.001
 
+    validation_indices = random.sample(range(len(text)), 44)
 
     GD_params = {"seq_length": seq_length, "num_iterations": 10000, "eta": eta, "beta_1": 0.9, "beta_2": 0.999,
                  "epsilon": 1e-8}
 
-    network = init_network_torch(K, m, rng)
+    validition_losses_hl = []
+    for hidden_layer_size in m:
 
-    trained_LSTM = AdamOptimizer(text, char_to_ind, ind_to_char, GD_params, network, rng, print_loss = True)
+        network = init_network_torch(K, hidden_layer_size, rng)
+
+        trained_LSTM, last_validation_loss = AdamOptimizer(text, validation_indices, char_to_ind, ind_to_char, GD_params, network, rng, print_loss = True)
+        validition_losses_hl.append(last_validation_loss)
+
+    for i in len(m):
+        print("Hidden layer size = " + str(m[i])+" had validation loss " + str(validition_losses_hl[i])+ " after " + str(GD_params["num_iterations"]) + " iterations")
+
 
 if __name__ == "__main__":
     main()
