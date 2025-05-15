@@ -177,7 +177,7 @@ def plot_loss(train_losses, validation_losses, validation_iterations, training_i
 # ------------------------
 # Main training loop
 # ------------------------
-def train(seq_len=50, batch_size=25, hidden_size=100, lr=1e-3, epochs=2, sample_interval=1000, sample_length=200, poems=False):
+def train(seq_len=50, batch_size=25, hidden_size=64, lr=5e-4, epochs=10, sample_interval=1000, sample_length=200, poems=False):
     # prepare data
     if poems:
         poems = load_poems()
@@ -188,6 +188,10 @@ def train(seq_len=50, batch_size=25, hidden_size=100, lr=1e-3, epochs=2, sample_
     split_idx = int(len(text) * 0.9)
     train_text = text[:split_idx]
     val_text = text[split_idx:]
+
+    best_val_loss = float('inf')
+    patience = 3  # Controls early stopping
+    patience_counter = 0
 
     train_dataset = TextDataset(train_text, char_to_ind, seq_len)
     val_dataset = TextDataset(val_text, char_to_ind, seq_len)
@@ -249,6 +253,17 @@ def train(seq_len=50, batch_size=25, hidden_size=100, lr=1e-3, epochs=2, sample_
         print(f"==> Epoch {epoch} validation loss: {val_loss:.4f}\n")
         validation_losses.append(val_loss)
         validation_iterations.append(step)
+
+        # --- EARLY STOPPING ---
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            patience_counter = 0
+            best_model_state = model.state_dict()   # If we want to restore the model for something, not sure
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print(f"Early stopping triggered at epoch {epoch}")
+                break
 
     return training_losses, validation_losses, validation_iterations, training_iterations
 
