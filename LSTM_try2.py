@@ -10,7 +10,7 @@ from torch.utils.hipify.hipify_python import value
 import matplotlib.pyplot as plt
 import itertools
 from spellchecker import SpellChecker
-
+import time
 
 # ------------------------
 # Data loading utilities
@@ -373,12 +373,14 @@ def save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, sav
 
 
 def main_grid_search():
+    start_time = time.time()
+
     train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text = prepare_datasets(seq_len=50)
 
     model_type = "lstm"
 
     model_types = [model_type]
-    hidden_sizes = [100, 256]
+    hidden_sizes = [100]
     lrs = [1e-3, 5e-4, 1e-4]
     batch_sizes = [16, 32, 64]
     num_layers_list = [1, 2]
@@ -448,6 +450,9 @@ def main_grid_search():
             writer.writerow([model_name, hidden_size, lr, batch_size, num_layers,
                              round(spell_acc, 2), round(bigram_overlap, 2), round(trigram_overlap, 2), last_epoch,
                              model_path])
+
+    elapsed_time = time.time() - start_time  # End timer
+    print(f"The whole training took {elapsed_time:.2f} seconds.")
 
 if __name__ == '__main__':
     #train_loss, val_loss, val_iter, train_iter = train(poems=True)
