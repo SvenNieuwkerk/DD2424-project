@@ -12,6 +12,8 @@ import itertools
 from spellchecker import SpellChecker
 import time
 
+from preprocessing_for_bpe import prepare_bpe_datasets
+
 # ------------------------
 # Data loading utilities
 # ------------------------
@@ -145,13 +147,16 @@ class TwoLayerRNN(nn.Module):
 # ------------------------
 # Training and sampling
 # ------------------------
-def sample(model, start_char, char_to_ind, ind_to_char, length, device, temperature = 1, top_p = 1):
+def sample(model, start_char, char_to_ind, ind_to_char, length, device, temperature = 1, top_p = 1, bpe = False, tokenizer = None):
     model.eval()
     K = model.vocab_size
     input_char = torch.zeros(1, 1, K, device=device)
     input_char[0, 0, char_to_ind[start_char]] = 1
     hidden = model.init_hidden(batch_size=1, device=device)
     generated = [start_char]
+    generated_idxs = []
+    if bpe:
+        generated_idxs.append(char_to_ind[start_char])
 
     with torch.no_grad():
         for _ in range(length):
@@ -179,6 +184,8 @@ def sample(model, start_char, char_to_ind, ind_to_char, length, device, temperat
 
             sampled_index = torch.multinomial(truncated_probs, 1).item()
             char_index = truncated_indices[sampled_index].item()
+            if bpe:
+                generated_idxs.append(char_index)
 
             next_char = ind_to_char[char_index]
             generated.append(next_char)
@@ -188,7 +195,11 @@ def sample(model, start_char, char_to_ind, ind_to_char, length, device, temperat
             input_char[0, 0, char_index] = 1
 
     model.train()
-    return ''.join(generated)
+    if not bpe:
+        return ''.join(generated)
+    else:
+        return tokenizer.decode(generated_idxs, skip_special_tokens=True)
+
 
 
 def plot_loss(train_losses, validation_losses, validation_iterations, training_iterations):
@@ -226,7 +237,7 @@ def prepare_datasets(seq_len=50, poems=True):
 # ------------------------
 def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
           seq_len=50, batch_size=25, hidden_size=64, lr=5e-4, epochs=20,
-          sample_interval=1000, sample_length=200, num_layers=2, model_type="lstm"):
+          sample_interval=1000, sample_length=200, num_layers=2, model_type="lstm", bpe = False, tokenizer = None):
 
     best_val_loss = float('inf')
     patience = 3  # Controls early stopping
@@ -251,28 +262,6 @@ def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
     training_iterations = []
     validation_losses = []
     validation_iterations = []
-
-    # validation loss at the start
-    model.eval()
-    val_loss = 0.0
-    val_steps = 0
-    with torch.no_grad():
-        for x_batch, y_batch in val_loader:
-            x_batch = x_batch.to(device)
-            y_batch = y_batch.to(device)
-
-            batch_size_curr = x_batch.size(0)
-            x_onehot = torch.zeros(batch_size_curr, seq_len, K, device=device)
-            x_onehot.scatter_(2, x_batch.unsqueeze(-1), 1)
-
-            logits, _ = model(x_onehot)
-            loss_val = criterion(logits, y_batch.view(-1))
-            val_loss += loss_val.item()
-            val_steps += 1
-    val_loss /= val_steps
-    print(f"\n==> Starting validation loss: {val_loss:.4f}\n")
-    validation_losses.append(val_loss)
-    validation_iterations.append(0)
 
     step = 0
     for epoch in range(1, epochs+1):
@@ -301,8 +290,11 @@ def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
 
             if step % sample_interval == 0:
                 start_char = ind_to_char[np.random.randint(0, K)]
-                #sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device)
-                print(f"[Epoch {epoch} | Step {step}] Loss: {loss.item():.4f}\n")
+                if not bpe:
+                    sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device)
+                else:
+                    sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device, bpe = bpe, tokenizer = tokenizer)
+                print(f"[Epoch {epoch} | Step {step}] Loss: {loss.item():.4f}\nSample: {sample_text}\n")
                 training_losses.append(loss.item())
                 training_iterations.append(step)
             step += 1
@@ -368,7 +360,7 @@ def ngram_overlap(generated_text, training_text, n):
     return overlap_percentage
 
 
-def save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir="results"):
+def save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir="results", bpe = False):
     os.makedirs(save_dir, exist_ok=True)
 
     param_str = f"{params['model']}_bs{params['batch_size']}_hs{params['hidden_size']}_lr{params['lr']}_layers{params['num_layers']}"
@@ -394,21 +386,29 @@ def save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, sav
     np.save(os.path.join(save_dir, f"train_iter_{param_str}.npy"), train_iter)
 
 
-def main_grid_search():
+def main_grid_search(bpe = False):
     start_time = time.time()
 
-    train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text = prepare_datasets(seq_len=50)
+    if not bpe:
+        train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text = prepare_datasets(seq_len=50)
+    else:
+        train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text, tokenizer = prepare_bpe_datasets(seq_len=50)
 
-    model_type = "step2"
+    model_type = "lstm"
 
-    model_types = ["lstm", "rnn"]
-    hidden_sizes = [32, 64, 100, 256]
+    model_types = [model_type]
+    hidden_sizes = [100]
     lrs = [1e-3]
     batch_sizes = [32]
-    num_layers_list = [1, 2]
+    num_layers_list = [2]
 
-    metrics_file = f"results_{model_type}/metrics_summary.csv"
-    os.makedirs(f"results_{model_type}", exist_ok=True)
+    if not bpe:
+        metrics_file = f"results_{model_type}/metrics_summary.csv"
+        os.makedirs(f"results_{model_type}", exist_ok=True)
+    else:
+        metrics_file = f"bpe/results_{model_type}/metrics_summary.csv"
+        os.makedirs(f"bpe/results_{model_type}", exist_ok=True)
+
 
     all_combinations = list(itertools.product(model_types, hidden_sizes, lrs, batch_sizes, num_layers_list))
     total_runs = len(all_combinations)
@@ -417,7 +417,7 @@ def main_grid_search():
     with open(metrics_file, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(["Model Type", "Hidden Size", "Learning Rate", "Batch Size", "Num Layers",
-                         "Spelling Accuracy (%)", "Bigram Overlap (%)", "Trigram Overlap (%)", "Last Epoch", "Last_val_loss", "Best_val_loss", "Model Path"])
+                         "Spelling Accuracy (%)", "Bigram Overlap (%)", "Trigram Overlap (%)", "Last Epoch", "Model Path"])
 
     counter = 1
 
@@ -425,19 +425,36 @@ def main_grid_search():
         print(f"\nRunning: {model_name}, H={hidden_size}, LR={lr}, BS={batch_size}, NL={num_layers}")
         print(f"Run {counter} out of {total_runs}")
 
-        train_loss, val_loss, val_iter, train_iter, model, last_epoch = train(
-            train_dataset=train_dataset,
-            val_dataset=val_dataset,
-            char_to_ind=char_to_ind,
-            ind_to_char=ind_to_char,
-            K=K,
-            hidden_size=hidden_size,
-            lr=lr,
-            batch_size=batch_size,
-            num_layers=num_layers,
-            model_type=model_name,
-            epochs=30,
-        )
+        if not bpe:
+            train_loss, val_loss, val_iter, train_iter, model, last_epoch = train(
+                train_dataset=train_dataset,
+                val_dataset=val_dataset,
+                char_to_ind=char_to_ind,
+                ind_to_char=ind_to_char,
+                K=K,
+                hidden_size=hidden_size,
+                lr=lr,
+                batch_size=batch_size,
+                num_layers=num_layers,
+                model_type=model_name,
+                epochs=20,
+            )
+        else:
+            train_loss, val_loss, val_iter, train_iter, model, last_epoch = train(
+                train_dataset=train_dataset,
+                val_dataset=val_dataset,
+                char_to_ind=char_to_ind,
+                ind_to_char=ind_to_char,
+                K=K,
+                hidden_size=hidden_size,
+                lr=lr,
+                batch_size=batch_size,
+                num_layers=num_layers,
+                model_type=model_name,
+                epochs=20,
+                bpe = bpe,
+                tokenizer=tokenizer
+            )
 
         params = {
             'model': model_name,
@@ -447,52 +464,41 @@ def main_grid_search():
             'num_layers': num_layers,
             'last_epoch': last_epoch
         }
-
-        save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir=f"results_{model_type}")
+        if not bpe:
+            save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir=f"results_{model_type}")
+        else:
+            save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir=f"bpe/results_{model_type}")
 
         # === Sample text from model ===
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         #char_to_ind, ind_to_char = model.char_to_ind, model.ind_to_char  # If not saved in model, pass separately
-        num_samples = 20
-        total_spell_acc = 0.0
-        total_bigram_overlap = 0.0
-        total_trigram_overlap = 0.0
-
-        for i in range(1, num_samples + 1):
-            start_char = np.random.choice(list(char_to_ind.keys()))
+        start_char = np.random.choice(list(char_to_ind.keys()))
+        if not bpe:
             generated_text = sample(model, start_char, char_to_ind, ind_to_char, length=200, device=device)
+        else:
+            generated_text = sample(model, start_char, char_to_ind, ind_to_char, K, device=device, bpe=bpe, tokenizer=tokenizer)
 
-            spell_acc = spelling_accuracy(generated_text)
-            bigram_overlap = ngram_overlap(generated_text, training_text, n=2)
-            trigram_overlap = ngram_overlap(generated_text, training_text, n=3)
-
-            total_spell_acc += spell_acc
-            total_bigram_overlap += bigram_overlap
-            total_trigram_overlap += trigram_overlap
-
-            print(f"Generated sample {i}/{num_samples}")
 
         # === Compute metrics ===
-        avg_spell_acc = total_spell_acc / num_samples
-        avg_bigram_overlap = total_bigram_overlap / num_samples
-        avg_trigram_overlap = total_trigram_overlap / num_samples
+        spell_acc = spelling_accuracy(generated_text)
+        bigram_overlap = ngram_overlap(generated_text, training_text, n=2)
+        trigram_overlap = ngram_overlap(generated_text, training_text, n=3)
 
         # === Save model ===
         param_str = f"{model_name}_bs{batch_size}_hs{hidden_size}_lr{lr}_layers{num_layers}"
-        model_path = f"results_{model_type}/model_{param_str}.pt"
-        torch.save(model.state_dict(), model_path)
+        if not bpe:
+            model_path = f"results_{model_type}/model_{param_str}.pt"
+        else:
+            model_path = f"bpe/results_{model_type}/model_{param_str}.pt"
 
-        last_val = val_loss[-1]
-        best_val = min(val_loss)
+        torch.save(model.state_dict(), model_path)
 
         # === Save metrics ===
         with open(metrics_file, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([model_name, hidden_size, lr, batch_size, num_layers,
-                             round(avg_spell_acc, 2), round(avg_bigram_overlap, 2), round(avg_trigram_overlap, 2), last_epoch,
-                             round(last_val, 3), round(best_val, 3), model_path])
-
-        counter += 1
+                             round(spell_acc, 2), round(bigram_overlap, 2), round(trigram_overlap, 2), last_epoch,
+                             model_path])
 
     elapsed_time = time.time() - start_time  # End timer
     print(f"The whole training took {elapsed_time:.2f} seconds.")
@@ -503,7 +509,7 @@ if __name__ == '__main__':
     #train(poems=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("Will be using", device)
+    print("Will be using ", device)
 
     #train_loss, val_loss, val_iter, train_iter, model = train()
-    main_grid_search()
+    main_grid_search(bpe = True)
