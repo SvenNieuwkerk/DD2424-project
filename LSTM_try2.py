@@ -12,6 +12,8 @@ import itertools
 from spellchecker import SpellChecker
 import time
 
+from preprocessing_for_bpe import prepare_bpe_datasets
+
 # ------------------------
 # Data loading utilities
 # ------------------------
@@ -145,13 +147,16 @@ class TwoLayerRNN(nn.Module):
 # ------------------------
 # Training and sampling
 # ------------------------
-def sample(model, start_char, char_to_ind, ind_to_char, length, device, temperature = 1, top_p = 1):
+def sample(model, start_char, char_to_ind, ind_to_char, length, device, temperature = 1, top_p = 1, bpe = False, tokenizer = None):
     model.eval()
     K = model.vocab_size
     input_char = torch.zeros(1, 1, K, device=device)
     input_char[0, 0, char_to_ind[start_char]] = 1
     hidden = model.init_hidden(batch_size=1, device=device)
     generated = [start_char]
+    generated_idxs = []
+    if bpe:
+        generated_idxs.append(char_to_ind[start_char])
 
     with torch.no_grad():
         for _ in range(length):
@@ -179,6 +184,8 @@ def sample(model, start_char, char_to_ind, ind_to_char, length, device, temperat
 
             sampled_index = torch.multinomial(truncated_probs, 1).item()
             char_index = truncated_indices[sampled_index].item()
+            if bpe:
+                generated_idxs.append(char_index)
 
             next_char = ind_to_char[char_index]
             generated.append(next_char)
@@ -188,7 +195,11 @@ def sample(model, start_char, char_to_ind, ind_to_char, length, device, temperat
             input_char[0, 0, char_index] = 1
 
     model.train()
-    return ''.join(generated)
+    if not bpe:
+        return ''.join(generated)
+    else:
+        return tokenizer.decode(generated_idxs, skip_special_tokens=True)
+
 
 
 def plot_loss(train_losses, validation_losses, validation_iterations, training_iterations):
@@ -226,7 +237,7 @@ def prepare_datasets(seq_len=50, poems=True):
 # ------------------------
 def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
           seq_len=50, batch_size=25, hidden_size=64, lr=5e-4, epochs=20,
-          sample_interval=1000, sample_length=200, num_layers=2, model_type="lstm"):
+          sample_interval=1000, sample_length=200, num_layers=2, model_type="lstm", bpe = False, tokenizer = None):
 
     best_val_loss = float('inf')
     patience = 3  # Controls early stopping
@@ -279,7 +290,10 @@ def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
 
             if step % sample_interval == 0:
                 start_char = ind_to_char[np.random.randint(0, K)]
-                sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device)
+                if not bpe:
+                    sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device)
+                else:
+                    sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device, bpe = bpe, tokenizer = tokenizer)
                 print(f"[Epoch {epoch} | Step {step}] Loss: {loss.item():.4f}\nSample: {sample_text}\n")
                 training_losses.append(loss.item())
                 training_iterations.append(step)
@@ -346,7 +360,7 @@ def ngram_overlap(generated_text, training_text, n):
     return overlap_percentage
 
 
-def save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir="results"):
+def save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir="results", bpe = False):
     os.makedirs(save_dir, exist_ok=True)
 
     param_str = f"{params['model']}_bs{params['batch_size']}_hs{params['hidden_size']}_lr{params['lr']}_layers{params['num_layers']}"
@@ -372,21 +386,29 @@ def save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, sav
     np.save(os.path.join(save_dir, f"train_iter_{param_str}.npy"), train_iter)
 
 
-def main_grid_search():
+def main_grid_search(bpe = False):
     start_time = time.time()
 
-    train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text = prepare_datasets(seq_len=50)
+    if not bpe:
+        train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text = prepare_datasets(seq_len=50)
+    else:
+        train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text, tokenizer = prepare_bpe_datasets(seq_len=50)
 
     model_type = "lstm"
 
     model_types = [model_type]
     hidden_sizes = [100]
-    lrs = [1e-3, 5e-4, 1e-4]
-    batch_sizes = [16, 32, 64]
-    num_layers_list = [1, 2]
+    lrs = [1e-3]
+    batch_sizes = [32]
+    num_layers_list = [2]
 
-    metrics_file = f"results_{model_type}/metrics_summary.csv"
-    os.makedirs(f"results_{model_type}", exist_ok=True)
+    if not bpe:
+        metrics_file = f"results_{model_type}/metrics_summary.csv"
+        os.makedirs(f"results_{model_type}", exist_ok=True)
+    else:
+        metrics_file = f"bpe/results_{model_type}/metrics_summary.csv"
+        os.makedirs(f"bpe/results_{model_type}", exist_ok=True)
+
 
     all_combinations = list(itertools.product(model_types, hidden_sizes, lrs, batch_sizes, num_layers_list))
     total_runs = len(all_combinations)
@@ -403,19 +425,36 @@ def main_grid_search():
         print(f"\nRunning: {model_name}, H={hidden_size}, LR={lr}, BS={batch_size}, NL={num_layers}")
         print(f"Run {counter} out of {total_runs}")
 
-        train_loss, val_loss, val_iter, train_iter, model, last_epoch = train(
-            train_dataset=train_dataset,
-            val_dataset=val_dataset,
-            char_to_ind=char_to_ind,
-            ind_to_char=ind_to_char,
-            K=K,
-            hidden_size=hidden_size,
-            lr=lr,
-            batch_size=batch_size,
-            num_layers=num_layers,
-            model_type=model_name,
-            epochs=20,
-        )
+        if not bpe:
+            train_loss, val_loss, val_iter, train_iter, model, last_epoch = train(
+                train_dataset=train_dataset,
+                val_dataset=val_dataset,
+                char_to_ind=char_to_ind,
+                ind_to_char=ind_to_char,
+                K=K,
+                hidden_size=hidden_size,
+                lr=lr,
+                batch_size=batch_size,
+                num_layers=num_layers,
+                model_type=model_name,
+                epochs=20,
+            )
+        else:
+            train_loss, val_loss, val_iter, train_iter, model, last_epoch = train(
+                train_dataset=train_dataset,
+                val_dataset=val_dataset,
+                char_to_ind=char_to_ind,
+                ind_to_char=ind_to_char,
+                K=K,
+                hidden_size=hidden_size,
+                lr=lr,
+                batch_size=batch_size,
+                num_layers=num_layers,
+                model_type=model_name,
+                epochs=20,
+                bpe = bpe,
+                tokenizer=tokenizer
+            )
 
         params = {
             'model': model_name,
@@ -425,14 +464,20 @@ def main_grid_search():
             'num_layers': num_layers,
             'last_epoch': last_epoch
         }
-
-        save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir=f"results_{model_type}")
+        if not bpe:
+            save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir=f"results_{model_type}")
+        else:
+            save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, save_dir=f"bpe/results_{model_type}")
 
         # === Sample text from model ===
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         #char_to_ind, ind_to_char = model.char_to_ind, model.ind_to_char  # If not saved in model, pass separately
         start_char = np.random.choice(list(char_to_ind.keys()))
-        generated_text = sample(model, start_char, char_to_ind, ind_to_char, length=200, device=device)
+        if not bpe:
+            generated_text = sample(model, start_char, char_to_ind, ind_to_char, length=200, device=device)
+        else:
+            generated_text = sample(model, start_char, char_to_ind, ind_to_char, K, device=device, bpe=bpe, tokenizer=tokenizer)
+
 
         # === Compute metrics ===
         spell_acc = spelling_accuracy(generated_text)
@@ -441,7 +486,11 @@ def main_grid_search():
 
         # === Save model ===
         param_str = f"{model_name}_bs{batch_size}_hs{hidden_size}_lr{lr}_layers{num_layers}"
-        model_path = f"results_{model_type}/model_{param_str}.pt"
+        if not bpe:
+            model_path = f"results_{model_type}/model_{param_str}.pt"
+        else:
+            model_path = f"bpe/results_{model_type}/model_{param_str}.pt"
+
         torch.save(model.state_dict(), model_path)
 
         # === Save metrics ===
@@ -463,4 +512,4 @@ if __name__ == '__main__':
     print("Will be using ", device)
 
     #train_loss, val_loss, val_iter, train_iter, model = train()
-    main_grid_search()
+    main_grid_search(bpe = True)
