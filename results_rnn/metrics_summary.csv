@@ -1,0 +1,19 @@
+Model Type,Hidden Size,Learning Rate,Batch Size,Num Layers,Spelling Accuracy (%),Bigram Overlap (%),Trigram Overlap (%),Last Epoch,Model Path
+rnn,100,0.001,16,1,58.82,9.09,0.0,5,results_rnn/model_rnn_bs16_hs100_lr0.001_layers1.pt
+rnn,100,0.001,16,2,70.27,11.11,2.86,4,results_rnn/model_rnn_bs16_hs100_lr0.001_layers2.pt
+rnn,100,0.001,32,1,51.52,6.25,0.0,9,results_rnn/model_rnn_bs32_hs100_lr0.001_layers1.pt
+rnn,100,0.001,32,2,59.46,16.67,2.86,5,results_rnn/model_rnn_bs32_hs100_lr0.001_layers2.pt
+rnn,100,0.001,64,1,48.48,21.88,0.0,10,results_rnn/model_rnn_bs64_hs100_lr0.001_layers1.pt
+rnn,100,0.001,64,2,59.38,16.13,3.33,6,results_rnn/model_rnn_bs64_hs100_lr0.001_layers2.pt
+rnn,100,0.0005,16,1,51.43,11.76,0.0,9,results_rnn/model_rnn_bs16_hs100_lr0.0005_layers1.pt
+rnn,100,0.0005,16,2,70.0,10.26,0.0,6,results_rnn/model_rnn_bs16_hs100_lr0.0005_layers2.pt
+rnn,100,0.0005,32,1,59.46,16.67,2.86,12,results_rnn/model_rnn_bs32_hs100_lr0.0005_layers1.pt
+rnn,100,0.0005,32,2,59.46,19.44,0.0,6,results_rnn/model_rnn_bs32_hs100_lr0.0005_layers2.pt
+rnn,100,0.0005,64,1,57.14,5.88,0.0,15,results_rnn/model_rnn_bs64_hs100_lr0.0005_layers1.pt
+rnn,100,0.0005,64,2,55.56,11.43,0.0,9,results_rnn/model_rnn_bs64_hs100_lr0.0005_layers2.pt
+rnn,100,0.0001,16,1,44.12,6.06,0.0,20,results_rnn/model_rnn_bs16_hs100_lr0.0001_layers1.pt
+rnn,100,0.0001,16,2,53.12,0.0,0.0,14,results_rnn/model_rnn_bs16_hs100_lr0.0001_layers2.pt
+rnn,100,0.0001,32,1,54.29,5.88,0.0,20,results_rnn/model_rnn_bs32_hs100_lr0.0001_layers1.pt
+rnn,100,0.0001,32,2,54.29,14.71,0.0,19,results_rnn/model_rnn_bs32_hs100_lr0.0001_layers2.pt
+rnn,100,0.0001,64,1,55.56,14.29,0.0,20,results_rnn/model_rnn_bs64_hs100_lr0.0001_layers1.pt
+rnn,100,0.0001,64,2,59.46,5.56,0.0,20,results_rnn/model_rnn_bs64_hs100_lr0.0001_layers2.pt
