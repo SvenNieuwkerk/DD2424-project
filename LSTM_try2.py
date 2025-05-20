@@ -29,12 +29,18 @@ SAMPLE_LENGTH = 200
 PATIENCE = 3
 GLOVE_PATH = fr'C:\Users\andre\DD2424-project\glove.6B\glove.6B.{EMBEDDING_DIM}d.txt'
 POEMS = True
+# AUGMENTATION PARAMETERS
+AUGMENT = True
+SR_RATIO = 0.1 # proportion of words for synonym replacement
+RI_RATIO = 0.1 # proportion of words for random insertion
+RS_RATIO = 0.1 # proportion of words for random swap
+RD_PROB = 0.1 # probability of random deletion per word
+NUM_AUGMENT = 1 # number of augmented versions per poem
 # ------------------------
 
 
 # ------------------------
 # Data loading utilities
-# ------------------------
 def read_in_data(seq_length=-1):
     book_dir = r'C:\Users\andre\Desktop\DD2424 - deep learning\Assignment4\goblet_book.txt'
     #book_dir = r'C:\Users\svenr\OneDrive - KTH\Deep Learning in Data Science\Project\DD2424-project\goblet_book.txt'
@@ -147,10 +153,10 @@ class TextDataset(Dataset):
 
     def __getitem__(self, idx):
         return torch.tensor(self.x[idx], dtype=torch.long), torch.tensor(self.y[idx], dtype=torch.long)
-    
+# ------------------------    
+
 # ------------------------
 # Data augmentaion utilities
-# ------------------------
 def get_synonyms(word):
     """
     Retrieve a list of one-word synonyms for the given word from WordNet.
@@ -258,11 +264,10 @@ def eda(words, alpha_sr, alpha_ri, alpha_rs, p_rd, num_aug):
                 a_words = random_deletion(a_words, p_rd)
         augmented.append(a_words)
     return augmented  # list of augmented word lists
-
+# ------------------------
 
 # ------------------------
 # Model definition
-# ------------------------
 class TwoLayerLSTMWord(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_size, num_layers=2, pretrained_embeddings=None, freeze_embed_epochs=2):
         super(TwoLayerLSTMWord, self).__init__()
@@ -322,10 +327,10 @@ class TwoLayerLSTM(nn.Module):
         h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(device)
         c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(device)
         return (h0, c0)
+# ------------------------
 
 # ------------------------
 # Training and sampling
-# ------------------------
 def sample_word(model, start_word, word_to_idx, idx_to_word, length, device, temperature=1.0, top_p=1.0):
     model.eval()
     input_idx = torch.tensor([[word_to_idx[start_word]]], device=device)
@@ -397,7 +402,7 @@ def sample(model, start_char, char_to_ind, ind_to_char, length, device, temperat
             input_char = torch.zeros(1, 1, K, device=device)
             input_char[0, 0, char_index] = 1
     return ''.join(generated)
-
+# ------------------------
 
 def plot_loss(train_losses, validation_losses, validation_iterations, training_iterations):
     plt.figure(figsize=(6, 4))
@@ -414,14 +419,10 @@ def plot_loss(train_losses, validation_losses, validation_iterations, training_i
 
 # ------------------------
 # Main training loop
-# ------------------------
-def train_word(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE,
-               lr=LEARNING_RATE, epochs=EPOCHS, sample_interval=SAMPLE_INTERVAL, sample_length=SAMPLE_LENGTH, poems=POEMS, augment = True,
-               alpha_sr=0.1,     # proportion of words for synonym replacement
-               alpha_ri=0.1,     # proportion of words for random insertion
-               alpha_rs=0.1,     # proportion of words for random swap
-               p_rd=0.1,         # probability of random deletion per word
-               num_aug=1):       # number of augmented versions per poem
+def train_word(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE, lr=LEARNING_RATE, 
+               epochs=EPOCHS, sample_interval=SAMPLE_INTERVAL, sample_length=SAMPLE_LENGTH, poems=POEMS, 
+               augment=AUGMENT, sr_ratio=SR_RATIO, ri_ratio=RI_RATIO, rs_ratio=RS_RATIO, rd_prob=RD_PROB, 
+               num_augment=NUM_AUGMENT):
     if poems:
         original_poems = load_poems()
         split_idx = int(len(original_poems) * 0.9)
@@ -433,7 +434,7 @@ def train_word(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE,
 
                 words = nltk.word_tokenize(poem)
 
-                aug_word_lists = eda(words, alpha_sr, alpha_ri, alpha_rs, p_rd, num_aug)
+                aug_word_lists = eda(words, sr_ratio, ri_ratio, rs_ratio, rd_prob, num_augment)
 
                 for awl in aug_word_lists:
                     augmented_poems.append(' '.join(awl))
@@ -452,8 +453,6 @@ def train_word(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE,
         split = int(len(words) * 0.9)
         train_words = words[:split]
         val_words = words[split:]
-
-    
 
     pretrained = load_glove_embeddings(GLOVE_PATH, word_to_idx)
 
@@ -524,13 +523,11 @@ def train_word(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE,
 
     return training_losses, validation_losses, validation_iterations, training_iterations
 
-def train(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE, lr=LEARNING_RATE, epochs=EPOCHS, sample_interval=SAMPLE_INTERVAL, sample_length=SAMPLE_LENGTH, poems=POEMS, augment=True,
-            alpha_sr=0.1,     # proportion of words for synonym replacement
-            alpha_ri=0.1,     # proportion of words for random insertion
-            alpha_rs=0.1,     # proportion of words for random swap
-            p_rd=0.1,         # probability of random deletion per word
-            num_aug=1):       # number of augmented versions per poem):
-    # prepare data
+def train(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE, lr=LEARNING_RATE, 
+          epochs=EPOCHS, sample_interval=SAMPLE_INTERVAL, sample_length=SAMPLE_LENGTH, poems=POEMS, 
+          augment=AUGMENT, sr_ratio=SR_RATIO, ri_ratio=RI_RATIO, rs_ratio=RS_RATIO, rd_prob=RD_PROB, 
+          num_augment=NUM_AUGMENT):
+
     if poems:
         original_poems = load_poems()
         split_idx = int(len(original_poems) * 0.9)
@@ -542,18 +539,18 @@ def train(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE, lr=LE
 
                 words = nltk.word_tokenize(poem)
 
-                aug_word_lists = eda(words, alpha_sr, alpha_ri, alpha_rs, p_rd, num_aug)
+                aug_word_lists = eda(words, sr_ratio, ri_ratio, rs_ratio, rd_prob, num_augment)
 
                 for awl in aug_word_lists:
                     augmented_poems.append(' '.join(awl))
 
-            final_data = train_poems + augmented_poems
-            text, char_to_ind, ind_to_char, K = build_corpus_and_vocab(final_data)
-            train_text = "\n\n".join(final_data)
+            final_poems = train_poems + augmented_poems
+            text, char_to_ind, ind_to_char, K = build_corpus_and_vocab(final_poems+val_poems)
+            train_text = "\n\n".join(final_poems)
             val_text = "\n\n".join(val_poems)
         else:
-            final_data = original_poems
-            text, char_to_ind, ind_to_char, K = build_corpus_and_vocab(final_data)
+            final_poems = original_poems
+            text, char_to_ind, ind_to_char, K = build_corpus_and_vocab(final_poems)
         
     else:
         text, char_to_ind, ind_to_char, K = read_in_data()
@@ -638,6 +635,7 @@ def train(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE, lr=LE
                 break
 
     return training_losses, validation_losses, validation_iterations, training_iterations
+# ------------------------
 
 if __name__ == '__main__':
     train_loss, val_loss, val_iter, train_iter = train_word()
