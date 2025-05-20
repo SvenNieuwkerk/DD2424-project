@@ -7,23 +7,23 @@ import re
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.hipify.hipify_python import value
 import matplotlib.pyplot as plt
-import nltk  # for WordNet and tokenization :contentReference[oaicite:0]{index=0}
-from nltk.corpus import wordnet  # lexical database for synonyms :contentReference[oaicite:1]{index=1}
-import random  # for random choices in augmentation :contentReference[oaicite:2]{index=2}
+import nltk  # for WordNet and tokenization
+from nltk.corpus import wordnet  # lexical database for synonyms
+import random  # for random choices in augmentation
 
 # Download necessary NLTK data if not already present
-nltk.download('wordnet')  # WordNet lexicon :contentReference[oaicite:3]{index=3}
-nltk.download('punkt')    # Tokenizer models for splitting sentences/words :contentReference[oaicite:4]{index=4}
+nltk.download('wordnet')  # WordNet lexicon
+nltk.download('punkt')    # Tokenizer models for splitting sentences/words
 
 
 # ------------------------
 # PARAMETERS
 SEQ_LEN = 25
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 HIDDEN_SIZE = 100
 EMBEDDING_DIM = 100  # 50, 100, 200, 300
-LEARNING_RATE = 0.0001
-EPOCHS = 10
+LEARNING_RATE = 0.001
+EPOCHS = 20
 SAMPLE_INTERVAL = 1000
 SAMPLE_LENGTH = 200
 PATIENCE = 3
@@ -155,13 +155,13 @@ def get_synonyms(word):
     """
     Retrieve a list of one-word synonyms for the given word from WordNet.
     """
-    synonyms = set()  # use a set to avoid duplicates :contentReference[oaicite:5]{index=5}
+    synonyms = set()  # use a set to avoid duplicates
     for synset in wordnet.synsets(word):
         for lemma in synset.lemmas():
             syn = lemma.name().lower().replace('_', ' ')
             if syn != word.lower() and ' ' not in syn:
                 synonyms.add(syn)
-    return list(synonyms)  # convert back to list :contentReference[oaicite:6]{index=6}
+    return list(synonyms)  # convert back to list
 
 
 def synonym_replacement(words, n):
@@ -170,7 +170,7 @@ def synonym_replacement(words, n):
     """
     new_words = words.copy()
     eligible_indices = [i for i, w in enumerate(words) if get_synonyms(w)]
-    random.shuffle(eligible_indices)  # shuffle to pick random words :contentReference[oaicite:8]{index=8}
+    random.shuffle(eligible_indices)  # shuffle to pick random words
     num_replaced = 0
 
     for idx in eligible_indices:
@@ -180,7 +180,7 @@ def synonym_replacement(words, n):
         if synonyms:
             new_words[idx] = random.choice(synonyms)
             num_replaced += 1
-    return new_words  # return modified word list :contentReference[oaicite:9]{index=9}
+    return new_words  # return modified word list
 
 
 def random_insertion(words, n):
@@ -200,7 +200,7 @@ def random_insertion(words, n):
         random_synonym = random.choice(synonyms)
         insert_pos = random.randint(0, len(new_words))
         new_words.insert(insert_pos, random_synonym)
-    return new_words  # return modified word list :contentReference[oaicite:12]{index=12}
+    return new_words  # return modified word list
 
 def random_swap(words, n):
     """
@@ -209,9 +209,9 @@ def random_swap(words, n):
     new_words = words.copy()
     length = len(new_words)
     for _ in range(n):
-        idx1, idx2 = random.sample(range(length), 2)  # pick two distinct indices :contentReference[oaicite:15]{index=15}
+        idx1, idx2 = random.sample(range(length), 2)  # pick two distinct indices
         new_words[idx1], new_words[idx2] = new_words[idx2], new_words[idx1]
-    return new_words  # return modified word list :contentReference[oaicite:16]{index=16}
+    return new_words  # return modified word list
 
 def random_deletion(words, p):
     """
@@ -219,7 +219,7 @@ def random_deletion(words, p):
     At least one word will remain.
     """
     if len(words) == 1:
-        return words  # nothing to delete if only one word :contentReference[oaicite:18]{index=18}
+        return words  # nothing to delete if only one word
 
     new_words = []
     for w in words:
@@ -228,7 +228,7 @@ def random_deletion(words, p):
     if not new_words:
         # ensure at least one word remains
         new_words.append(random.choice(words))
-    return new_words  # return modified word list :contentReference[oaicite:19]{index=19}
+    return new_words  # return modified word list
 
 
 def eda(words, alpha_sr, alpha_ri, alpha_rs, p_rd, num_aug):
@@ -237,7 +237,7 @@ def eda(words, alpha_sr, alpha_ri, alpha_rs, p_rd, num_aug):
     """
     augmented = []
     num_words = len(words)
-    n_sr = max(1, int(alpha_sr * num_words))  # at least one replacement if alpha > 0 :contentReference[oaicite:21]{index=21}
+    n_sr = max(1, int(alpha_sr * num_words))  # at least one replacement if alpha > 0
     n_ri = max(1, int(alpha_ri * num_words))
     n_rs = max(1, int(alpha_rs * num_words))
 
@@ -257,7 +257,7 @@ def eda(words, alpha_sr, alpha_ri, alpha_rs, p_rd, num_aug):
             elif op == 'rd':
                 a_words = random_deletion(a_words, p_rd)
         augmented.append(a_words)
-    return augmented  # list of augmented word lists :contentReference[oaicite:22]{index=22}
+    return augmented  # list of augmented word lists
 
 
 # ------------------------
@@ -416,40 +416,44 @@ def plot_loss(train_losses, validation_losses, validation_iterations, training_i
 # Main training loop
 # ------------------------
 def train_word(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE,
-               lr=LEARNING_RATE, epochs=EPOCHS, sample_interval=SAMPLE_INTERVAL, sample_length=SAMPLE_LENGTH, poems=POEMS,
-               alpha_sr=0.1,     # proportion of words for synonym replacement :contentReference[oaicite:25]{index=25}
-               alpha_ri=0.1,     # proportion of words for random insertion :contentReference[oaicite:26]{index=26}
-               alpha_rs=0.1,     # proportion of words for random swap :contentReference[oaicite:27]{index=27}
-               p_rd=0.1,         # probability of random deletion per word :contentReference[oaicite:28]{index=28}
-               num_aug=1):       # number of augmented versions per poem :contentReference[oaicite:29]{index=29}):
+               lr=LEARNING_RATE, epochs=EPOCHS, sample_interval=SAMPLE_INTERVAL, sample_length=SAMPLE_LENGTH, poems=POEMS, augment = True,
+               alpha_sr=0.1,     # proportion of words for synonym replacement
+               alpha_ri=0.1,     # proportion of words for random insertion
+               alpha_rs=0.1,     # proportion of words for random swap
+               p_rd=0.1,         # probability of random deletion per word
+               num_aug=1):       # number of augmented versions per poem
     if poems:
         original_poems = load_poems()
-        augmented_poems = []
-        for poem in original_poems:
-            # Tokenize poem into words (NLTK's word_tokenize for reliable splitting) :contentReference[oaicite:32]{index=32}
-            words = nltk.word_tokenize(poem)
-            # Generate 'num_aug' augmented versions of this poem :contentReference[oaicite:33]{index=33}
-            aug_word_lists = eda(words, alpha_sr, alpha_ri, alpha_rs, p_rd, num_aug)
-            # Convert each augmented word list back into a single poem string :contentReference[oaicite:34]{index=34}
-            for awl in aug_word_lists:
-                augmented_poems.append(' '.join(awl))
+        split_idx = int(len(original_poems) * 0.9)
+        train_poems = original_poems[:split_idx]
+        val_poems = original_poems[split_idx:]
+        if augment: 
+            augmented_poems = []
+            for poem in train_poems:
 
-        # 3. Combine original and augmented poems :contentReference[oaicite:35]{index=35}
-        print(len(original_poems), "original")
-        print(len(augmented_poems), "augmented")
+                words = nltk.word_tokenize(poem)
 
-        final_data = original_poems + augmented_poems
-        print(len(final_data), "final")
-        print(final_data)
+                aug_word_lists = eda(words, alpha_sr, alpha_ri, alpha_rs, p_rd, num_aug)
+
+                for awl in aug_word_lists:
+                    augmented_poems.append(' '.join(awl))
+
+            final_poems = train_poems + augmented_poems
+        else:
+            final_poems = train_poems
+        all_words, word_to_idx, idx_to_word = build_word_vocab(final_poems+val_poems)
+        train_text = "\n".join(train_poems)
+        val_text = "\n".join(val_poems)
+        train_words = train_text.split()
+        val_words = val_text.split()
     else:
         final_data, __, __, __ = read_in_data()
+        words, word_to_idx, idx_to_word = build_word_vocab(final_data)
+        split = int(len(words) * 0.9)
+        train_words = words[:split]
+        val_words = words[split:]
 
-
-        
-    words, word_to_idx, idx_to_word = build_word_vocab(final_data)
-    split = int(len(words) * 0.9)
-    train_words = words[:split]
-    val_words = words[split:]
+    
 
     pretrained = load_glove_embeddings(GLOVE_PATH, word_to_idx)
 
@@ -520,17 +524,42 @@ def train_word(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE,
 
     return training_losses, validation_losses, validation_iterations, training_iterations
 
-def train(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE, lr=LEARNING_RATE, epochs=EPOCHS, sample_interval=SAMPLE_INTERVAL, sample_length=SAMPLE_LENGTH, poems=POEMS):
+def train(seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE, lr=LEARNING_RATE, epochs=EPOCHS, sample_interval=SAMPLE_INTERVAL, sample_length=SAMPLE_LENGTH, poems=POEMS, augment=True,
+            alpha_sr=0.1,     # proportion of words for synonym replacement
+            alpha_ri=0.1,     # proportion of words for random insertion
+            alpha_rs=0.1,     # proportion of words for random swap
+            p_rd=0.1,         # probability of random deletion per word
+            num_aug=1):       # number of augmented versions per poem):
     # prepare data
     if poems:
-        poems = load_poems()
-        text, char_to_ind, ind_to_char, K = build_corpus_and_vocab(poems)
+        original_poems = load_poems()
+        split_idx = int(len(original_poems) * 0.9)
+        train_poems = original_poems[:split_idx]
+        val_poems = original_poems[split_idx:]
+        if augment:
+            augmented_poems = []
+            for poem in train_poems:
+
+                words = nltk.word_tokenize(poem)
+
+                aug_word_lists = eda(words, alpha_sr, alpha_ri, alpha_rs, p_rd, num_aug)
+
+                for awl in aug_word_lists:
+                    augmented_poems.append(' '.join(awl))
+
+            final_data = train_poems + augmented_poems
+            text, char_to_ind, ind_to_char, K = build_corpus_and_vocab(final_data)
+            train_text = "\n\n".join(final_data)
+            val_text = "\n\n".join(val_poems)
+        else:
+            final_data = original_poems
+            text, char_to_ind, ind_to_char, K = build_corpus_and_vocab(final_data)
+        
     else:
         text, char_to_ind, ind_to_char, K = read_in_data()
-
-    split_idx = int(len(text) * 0.9)
-    train_text = text[:split_idx]
-    val_text = text[split_idx:]
+        split_idx = int(len(text) * 0.9)
+        train_text = text[:split_idx]
+        val_text = text[split_idx:]
 
     best_val_loss = float('inf')
     patience = PATIENCE  # Controls early stopping
