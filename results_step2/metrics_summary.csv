@@ -1,0 +1,17 @@
+Model Type,Hidden Size,Learning Rate,Batch Size,Num Layers,Spelling Accuracy (%),Bigram Overlap (%),Trigram Overlap (%),Last Epoch,Last_val_loss,Best_val_loss,Model Path
+lstm,32,0.001,32,1,56.52,8.13,0.3,24,1.755,1.754,results_step2/model_lstm_bs32_hs32_lr0.001_layers1.pt
+lstm,32,0.001,32,2,56.75,8.78,0.27,13,1.728,1.727,results_step2/model_lstm_bs32_hs32_lr0.001_layers2.pt
+lstm,64,0.001,32,1,57.42,11.06,0.3,9,1.715,1.707,results_step2/model_lstm_bs32_hs64_lr0.001_layers1.pt
+lstm,64,0.001,32,2,61.44,11.99,0.59,7,1.702,1.675,results_step2/model_lstm_bs32_hs64_lr0.001_layers2.pt
+lstm,100,0.001,32,1,58.47,11.53,0.57,6,1.741,1.695,results_step2/model_lstm_bs32_hs100_lr0.001_layers1.pt
+lstm,100,0.001,32,2,57.09,15.85,0.74,5,1.788,1.68,results_step2/model_lstm_bs32_hs100_lr0.001_layers2.pt
+lstm,256,0.001,32,1,62.35,16.57,1.21,4,2.092,1.702,results_step2/model_lstm_bs32_hs256_lr0.001_layers1.pt
+lstm,256,0.001,32,2,71.53,33.45,13.8,4,2.258,1.732,results_step2/model_lstm_bs32_hs256_lr0.001_layers2.pt
+rnn,32,0.001,32,1,50.38,4.53,0.0,20,1.835,1.834,results_step2/model_rnn_bs32_hs32_lr0.001_layers1.pt
+rnn,32,0.001,32,2,51.88,5.78,0.0,13,1.782,1.781,results_step2/model_rnn_bs32_hs32_lr0.001_layers2.pt
+rnn,64,0.001,32,1,53.4,8.04,0.3,17,1.738,1.736,results_step2/model_rnn_bs32_hs64_lr0.001_layers1.pt
+rnn,64,0.001,32,2,58.44,7.48,0.0,9,1.706,1.699,results_step2/model_rnn_bs32_hs64_lr0.001_layers2.pt
+rnn,100,0.001,32,1,55.91,8.85,0.15,9,1.719,1.71,results_step2/model_rnn_bs32_hs100_lr0.001_layers1.pt
+rnn,100,0.001,32,2,60.18,12.49,0.27,5,1.737,1.693,results_step2/model_rnn_bs32_hs100_lr0.001_layers2.pt
+rnn,256,0.001,32,1,56.79,14.46,0.87,4,1.915,1.751,results_step2/model_rnn_bs32_hs256_lr0.001_layers1.pt
+rnn,256,0.001,32,2,63.8,20.89,3.07,4,2.155,1.714,results_step2/model_rnn_bs32_hs256_lr0.001_layers2.pt
