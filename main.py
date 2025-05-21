@@ -17,7 +17,9 @@ nltk.download('punkt')    # Tokenizer models for splitting sentences/words
 
 # ------------------------
 # PARAMETERS
-SEQ_LEN = 25
+MODEL_TYPE = "lstm"
+NUM_LAYERS = 2
+SEQ_LEN = 50
 BATCH_SIZE = 32
 HIDDEN_SIZE = 100
 EMBEDDING_DIM = 100  # 50, 100, 200, 300
@@ -72,7 +74,7 @@ def prepare_datasets(seq_len=50, augment=AUGMENT, sr_ratio=SR_RATIO, ri_ratio=RI
     val_dataset = TextDataset(val_text, char_to_ind, seq_len)
     return train_dataset, val_dataset, char_to_ind, ind_to_char, K, train_text
 
-def prepare_datasets_word(seq_len=50, augment=AUGMENT, sr_ratio=SR_RATIO, ri_ratio=RI_RATIO, rs_ratio=RS_RATIO, rd_prob=RD_PROB, num_augment=NUM_AUGMENT):
+def prepare_datasets_word(seq_len=SEQ_LEN, augment=AUGMENT, sr_ratio=SR_RATIO, ri_ratio=RI_RATIO, rs_ratio=RS_RATIO, rd_prob=RD_PROB, num_augment=NUM_AUGMENT):
     original_poems = load_poems()
     split_idx = int(len(original_poems) * 0.9)
     train_poems = original_poems[:split_idx]
@@ -105,8 +107,9 @@ def prepare_datasets_word(seq_len=50, augment=AUGMENT, sr_ratio=SR_RATIO, ri_rat
 # Main training loop
 # ------------------------
 def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
-          seq_len=50, batch_size=25, hidden_size=64, lr=5e-4, epochs=20,
-          sample_interval=1000, sample_length=200, num_layers=2, model_type="lstm", bpe = False, tokenizer = None, glove=False, word_to_idx=None, idx_to_word=None):
+          seq_len=SEQ_LEN, batch_size=BATCH_SIZE, hidden_size=HIDDEN_SIZE, lr=LEARNING_RATE, epochs=EPOCHS,
+          sample_interval=SAMPLE_INTERVAL, sample_length=SAMPLE_LENGTH, num_layers=NUM_LAYERS, model_type=MODEL_TYPE,
+          bpe=USE_BPE, tokenizer = None, glove=USE_GLOVE, word_to_idx=None, idx_to_word=None):
 
     best_val_loss = float('inf')
     patience = 3  # Controls early stopping

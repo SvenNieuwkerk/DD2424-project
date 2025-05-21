@@ -5,35 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="52d88c64-7a9b-4414-aa1f-6adc30ab091c" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/bpe-merges.txt" beforeDir="false" afterPath="$PROJECT_DIR$/bpe-merges.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bpe-vocab.json" beforeDir="false" afterPath="$PROJECT_DIR$/bpe-vocab.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_utilities.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_utilities.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=False/lstm/loss_plot_lstm_bs32_hs100_lr0.001_layers2.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=False/lstm/model_lstm_bs32_hs100_lr0.001_layers2.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=False/lstm/train_iter_lstm_bs32_hs100_lr0.001_layers2.npy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=False/lstm/train_loss_lstm_bs32_hs100_lr0.001_layers2.npy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=False/lstm/val_iter_lstm_bs32_hs100_lr0.001_layers2.npy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=False/lstm/val_loss_lstm_bs32_hs100_lr0.001_layers2.npy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=False/metrics_summary.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=True/lstm/loss_plot_lstm_bs32_hs100_lr0.001_layers2.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=True/lstm/model_lstm_bs32_hs100_lr0.001_layers2.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=True/lstm/train_iter_lstm_bs32_hs100_lr0.001_layers2.npy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=True/lstm/train_loss_lstm_bs32_hs100_lr0.001_layers2.npy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=True/lstm/val_iter_lstm_bs32_hs100_lr0.001_layers2.npy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=True/lstm/val_loss_lstm_bs32_hs100_lr0.001_layers2.npy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/glove/results_A=True/metrics_summary.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/output.txt" beforeDir="false" afterPath="$PROJECT_DIR$/output.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/results_best_model_configs/generated_texts_summary.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/results_best_model_configs/metrics.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/results_best_model_configs/model_bpe=False_glove=False_aug=False.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/results_best_model_configs/model_bpe=False_glove=False_aug=True.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/results_best_model_configs/model_bpe=False_glove=True_aug=False.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/results_best_model_configs/model_bpe=False_glove=True_aug=True.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/results_best_model_configs/model_bpe=True_glove=False_aug=False.pt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/results_best_model_configs/model_bpe=True_glove=False_aug=True.pt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/preprocessing_for_bpe.py" beforeDir="false" afterPath="$PROJECT_DIR$/preprocessing_for_bpe.py" afterDir="false" />
     </list>
-    <list id="6682e720-74f3-4da3-96b4-b086eb607d1c" name="Changes by jahnf" comment="" />
+    <list id="6682e720-74f3-4da3-96b4-b086eb607d1c" name="Changes by jahnf" comment="">
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -133,7 +110,7 @@
       <workItem from="1747737846748" duration="12158000" />
       <workItem from="1747772486246" duration="27000" />
       <workItem from="1747790324733" duration="1559000" />
-      <workItem from="1747815686064" duration="28055000" />
+      <workItem from="1747815686064" duration="32021000" />
     </task>
     <servers />
   </component>

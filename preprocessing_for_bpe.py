@@ -5,30 +5,6 @@ nltk.download('punkt_tab')
 
 from data_utilities import *
 
-
-def load_poems_OLD():
-    url = "https://www.gutenberg.org/cache/epub/12242/pg12242.txt"
-    r = requests.get(url); r.encoding = "utf-8"
-    raw = r.text
-    start = "*** START OF THE PROJECT GUTENBERG EBOOK POEMS BY EMILY DICKINSON, THREE SERIES, COMPLETE ***"
-    end   = "End of Project Gutenberg's Poems: Three Series, Complete, by Emily Dickinson"
-    body = raw[ raw.find(start) + len(start) : raw.find(end) ]
-    first = re.search(r'(?m)^[IVXLCDM]+\.\s*$', body)
-    body = body[first.start():]
-    poems = [p.strip() for p in re.split(r'(?m)^[IVXLCDM]+\.\s*$', body) if len(p.split())>10]
-
-    # fix up a few manual slices
-    poems[280] = "\n".join(poems[280].splitlines()[:4])
-    poems[114] = "\n".join(poems[114].splitlines()[:9])
-    poems[0]   = "\n".join(poems[0].splitlines()[6:])
-    return poems
-
-def build_char_vocab(text):
-    uniq = sorted(set(text))
-    char_to_ind = {ch:i for i,ch in enumerate(uniq)}
-    ind_to_char = {i:ch for ch,i in char_to_ind.items()}
-    return char_to_ind, ind_to_char, len(uniq)
-
 def preprocces_text_for_byte_pair(poems, out_path="output.txt"):
     text = "\n".join(poems)
     # strip control chars, ensure NFC
