@@ -1,0 +1,7 @@
+BPE,GloVe,Augment,Spelling Accuracy,Bigram Overlap,Trigram Overlap,Model Path
+False,False,False,71.05,5.41,0.0,results_best_model_configs/model_bpe=False_glove=False_aug=False.pt
+False,False,True,72.97,25.0,5.71,results_best_model_configs/model_bpe=False_glove=False_aug=True.pt
+True,False,False,68.87,27.62,1.92,results_best_model_configs/model_bpe=True_glove=False_aug=False.pt
+False,True,False,81.09,36.0,4.52,results_best_model_configs/model_bpe=False_glove=True_aug=False.pt
+True,False,True,68.52,28.04,1.89,results_best_model_configs/model_bpe=True_glove=False_aug=True.pt
+False,True,True,81.09,32.0,5.53,results_best_model_configs/model_bpe=False_glove=True_aug=True.pt

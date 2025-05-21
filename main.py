@@ -26,6 +26,8 @@ EPOCHS = 20
 SAMPLE_INTERVAL = 1000
 SAMPLE_LENGTH = 200
 PATIENCE = 3
+TEMPERATURE = 0.9
+TOP_P = 0.95
 USE_GLOVE = True # cannot be used at the same time as bpe
 GLOVE_PATH_ANDREAS = fr'C:\Users\andre\DD2424-project\glove.6B\glove.6B.{EMBEDDING_DIM}d.txt' # download at: https://nlp.stanford.edu/projects/glove/
 GLOVE_PATH = fr'C:\ALL\Univerzita\Master Year 1\2B Deep Learning in Data Science\Project\glove.6B\glove.6B.{EMBEDDING_DIM}d.txt'
@@ -110,6 +112,8 @@ def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
     patience = 3  # Controls early stopping
     patience_counter = 0
 
+    best_model_state = None
+
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, drop_last=True)
 
@@ -137,6 +141,31 @@ def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
     training_iterations = []
     validation_losses = []
     validation_iterations = []
+
+    # validation loss at the start
+    model.eval()
+    val_loss = 0.0
+    val_steps = 0
+    with torch.no_grad():
+        for x_batch, y_batch in val_loader:
+            x_batch = x_batch.to(device)
+            y_batch = y_batch.to(device)
+
+            batch_size_curr = x_batch.size(0)
+            if not glove:
+                x_onehot = torch.zeros(batch_size_curr, seq_len, K, device=device)
+                x_onehot.scatter_(2, x_batch.unsqueeze(-1), 1)
+
+                logits, _ = model(x_onehot)
+            else:
+                logits, _ = model(x_batch)
+            loss_val = criterion(logits, y_batch.view(-1))
+            val_loss += loss_val.item()
+            val_steps += 1
+    val_loss /= val_steps
+    print(f"\n==> Starting validation loss: {val_loss:.4f}\n")
+    validation_losses.append(val_loss)
+    validation_iterations.append(0)
 
     step = 0
     for epoch in range(1, epochs+1):
@@ -176,13 +205,13 @@ def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
             if step % sample_interval == 0:
                 if bpe:
                     start_char = ind_to_char[np.random.randint(0, K)]
-                    sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device, bpe = bpe, tokenizer = tokenizer)
+                    sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device,  temperature = TEMPERATURE, top_p = TOP_P, bpe = bpe, tokenizer = tokenizer)
                 elif glove:
                     start_word = idx_to_word[np.random.randint(0, len(word_to_idx))]
-                    sample_text = sample_word(model, start_word, word_to_idx, idx_to_word, sample_length, device)
+                    sample_text = sample_word(model, start_word, word_to_idx, idx_to_word, sample_length, device, temperature = TEMPERATURE, top_p = TOP_P)
                 else:
                     start_char = ind_to_char[np.random.randint(0, K)]
-                    sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device)
+                    sample_text = sample(model, start_char, char_to_ind, ind_to_char, sample_length, device,  temperature = TEMPERATURE, top_p = TOP_P, bpe = False)
                 print(f"[Epoch {epoch} | Step {step}] Loss: {loss.item():.4f}\nSample: {sample_text}\n")
                 training_losses.append(loss.item())
                 training_iterations.append(step)
@@ -224,7 +253,9 @@ def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
             if patience_counter >= patience:
                 print(f"Early stopping triggered at epoch {epoch}")
                 break
-
+    # Restore best model state before returning
+    if best_model_state:
+        model.load_state_dict(best_model_state)
     return training_losses, validation_losses, validation_iterations, training_iterations, model, epoch
 
 # ------------------------
@@ -264,8 +295,9 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
         train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text = prepare_datasets(seq_len=50, augment=AUGMENT)
 
     model_path = f"A={AUGMENT}"
+    model_path = "final_test"
 
-    model_types = ["lstm"]
+    model_types = ["lstm", "rnn"]
     hidden_sizes = [100]
     lrs = [1e-3]
     batch_sizes = [32]
@@ -289,7 +321,7 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
     with open(metrics_file, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(["Model Type", "Hidden Size", "Learning Rate", "Batch Size", "Num Layers",
-                         "Spelling Accuracy (%)", "Bigram Overlap (%)", "Trigram Overlap (%)", "Last Epoch", "Model Path"])
+                         "Spelling Accuracy (%)", "Bigram Overlap (%)", "Trigram Overlap (%)", "Last Epoch", "Last_val_loss", "Best_val_loss", "Model Path"])
 
     counter = 1
 
@@ -373,21 +405,57 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
         # === Sample text from model ===
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         #char_to_ind, ind_to_char = model.char_to_ind, model.ind_to_char  # If not saved in model, pass separately
+        """
         if bpe:
             start_char = np.random.choice(list(char_to_ind.keys()))
-            generated_text = sample(model, start_char, char_to_ind, ind_to_char, K, device=device, bpe=bpe, tokenizer=tokenizer)
+            generated_text = sample(model, start_char, char_to_ind, ind_to_char, K, device=device,  temperature = TEMPERATURE, top_p = TOP_P, bpe=bpe, tokenizer=tokenizer)
         elif glove:
             start_word = idx_to_word[np.random.randint(0, len(word_to_idx))]
-            generated_text = sample_word(model, start_word, word_to_idx, idx_to_word, length=200, device=device)
+            generated_text = sample_word(model, start_word, word_to_idx, idx_to_word, length=200, device=device, temperature = TEMPERATURE, top_p = TOP_P)
         else:
             start_char = np.random.choice(list(char_to_ind.keys()))
-            generated_text = sample(model, start_char, char_to_ind, ind_to_char, length=200, device=device)
+            generated_text = sample(model, start_char, char_to_ind, ind_to_char, length=200, device=device,  temperature = TEMPERATURE, top_p = TOP_P, bpe = False)
+        """
 
+        num_samples = 20
+        total_spell_acc = 0.0
+        total_bigram_overlap = 0.0
+        total_trigram_overlap = 0.0
+
+        for i in range(1, num_samples + 1):
+            if bpe:
+                start_char = np.random.choice(list(char_to_ind.keys()))
+                generated_text = sample(model, start_char, char_to_ind, ind_to_char, K, device=device,
+                                        temperature=TEMPERATURE, top_p=TOP_P, bpe=bpe, tokenizer=tokenizer)
+            elif glove:
+                start_word = idx_to_word[np.random.randint(0, len(word_to_idx))]
+                generated_text = sample_word(model, start_word, word_to_idx, idx_to_word, length=200, device=device,
+                                             temperature=TEMPERATURE, top_p=TOP_P)
+            else:
+                start_char = np.random.choice(list(char_to_ind.keys()))
+                generated_text = sample(model, start_char, char_to_ind, ind_to_char, length=200, device=device,
+                                        temperature=TEMPERATURE, top_p=TOP_P, bpe=False)
+
+            spell_acc = spelling_accuracy(generated_text)
+            bigram_overlap = ngram_overlap(generated_text, training_text, n=2)
+            trigram_overlap = ngram_overlap(generated_text, training_text, n=3)
+
+            total_spell_acc += spell_acc
+            total_bigram_overlap += bigram_overlap
+            total_trigram_overlap += trigram_overlap
+
+            #print(f"Generated sample {i}/{num_samples}")
 
         # === Compute metrics ===
+        """
         spell_acc = spelling_accuracy(generated_text)
         bigram_overlap = ngram_overlap(generated_text, training_text, n=2)
         trigram_overlap = ngram_overlap(generated_text, training_text, n=3)
+        """
+
+        spell_acc = total_spell_acc / num_samples
+        bigram_overlap = total_bigram_overlap / num_samples
+        trigram_overlap = total_trigram_overlap / num_samples
 
         # === Save model ===
         param_str = f"{model_name}_bs{batch_size}_hs{hidden_size}_lr{lr}_layers{num_layers}"
@@ -400,23 +468,251 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
 
         torch.save(model.state_dict(), model_path_temp)
 
+        last_val = val_loss[-1]
+        best_val = min(val_loss)
+
         # === Save metrics ===
         with open(metrics_file, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([model_name, hidden_size, lr, batch_size, num_layers,
                              round(spell_acc, 2), round(bigram_overlap, 2), round(trigram_overlap, 2), last_epoch,
-                             model_path])
+                             round(last_val, 3), round(best_val, 3), model_path])
+
+        counter += 1
 
     elapsed_time = time.time() - start_time  # End timer
     print(f"The whole training took {elapsed_time:.2f} seconds.")
 
-if __name__ == '__main__':
-    #train_loss, val_loss, val_iter, train_iter = train()
-    #plot_loss(train_loss, val_loss, val_iter, train_iter)
-    #train()
+def grid_search_for_nucleus_and_temperature():
+    _, _, char_to_ind, ind_to_char, K, training_text = prepare_datasets(seq_len=50, augment=False)
+    # Load the best model from grid search for each config
+    one_rnn = TwoLayerRNN(vocab_size=K, hidden_size=100, num_layers=1).to(device)
+    one_lstm = TwoLayerLSTM(vocab_size=K, hidden_size=256, num_layers=1).to(device)
+    two_rnn = TwoLayerRNN(vocab_size=K, hidden_size=100, num_layers=2).to(device)
+    two_lstm = TwoLayerLSTM(vocab_size=K, hidden_size=64, num_layers=2).to(device)
 
+    one_rnn.load_state_dict(torch.load("results_step2/model_rnn_bs32_hs100_lr0.001_layers1.pt"))
+    one_lstm.load_state_dict(torch.load("results_step2/model_lstm_bs32_hs256_lr0.001_layers1.pt"))
+    two_rnn.load_state_dict(torch.load("results_step2/model_rnn_bs32_hs100_lr0.001_layers2.pt"))
+    two_lstm.load_state_dict(torch.load("results_step2/model_lstm_bs32_hs64_lr0.001_layers2.pt"))
+
+    models = [
+        ("rnn_1layer", one_rnn, 100, 1),
+        ("lstm_1layer", one_lstm, 256, 1),
+        ("rnn_2layer", two_rnn, 100, 2),
+        ("lstm_2layer", two_lstm, 64, 2),
+    ]
+
+    generated_texts = {}
+
+    models = [("lstm_2layer", two_lstm, 64, 2)]
+
+    temperatures = [0.6, 0.8, 0.9, 1, 1.1, 1.2]
+    nucleus_probs = [0.85, 0.9, 0.95, 0.99]
+
+    metrics_file = "results_n_t_best_models/metrics.csv"
+    os.makedirs("results_n_t_best_models", exist_ok=True)
+
+    # Initialize CSV
+    with open(metrics_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["Model", "Hidden Size", "Num Layers", "Temperature", "Nucleus", "Spelling Accuracy (%)", "Bigram Overlap (%)", "Trigram Overlap (%)"])
+
+    # For all combinations, sample, keep track of results
+    for model_idx, (model_name, model, hidden_size, num_layers) in enumerate(models):
+        print(
+            f"\n Evaluating model {model_idx + 1}/{len(models)}: {model_name}, hidden_size={hidden_size}, layers={num_layers}")
+
+        for temp_idx, temp in enumerate(temperatures):
+            for nucleus_idx, nucleus in enumerate(nucleus_probs):
+                print(f"Trying model: {model_name}, Temp: {temp}, Nucleus: {nucleus}")
+
+
+                start_char = np.random.choice(list(char_to_ind.keys()))
+                generated_text = sample(
+                    model, start_char, char_to_ind, ind_to_char,
+                    length=200, device=device,
+                    temperature=temp, top_p=nucleus
+                )
+
+                # Store the generated text
+                key = (model_name, temp, nucleus)
+                generated_texts[key] = generated_text
+
+                num_samples = 20
+                total_spell_acc = 0.0
+                total_bigram_overlap = 0.0
+                total_trigram_overlap = 0.0
+
+                for i in range(1, num_samples + 1):
+                    start_char = np.random.choice(list(char_to_ind.keys()))
+                    generated_text = sample(
+                        model, start_char, char_to_ind, ind_to_char,
+                        length=200, device=device,
+                        temperature=temp, top_p=nucleus
+                    )
+
+                    spell_acc = spelling_accuracy(generated_text)
+                    bigram_overlap = ngram_overlap(generated_text, training_text, n=2)
+                    trigram_overlap = ngram_overlap(generated_text, training_text, n=3)
+
+                    total_spell_acc += spell_acc
+                    total_bigram_overlap += bigram_overlap
+                    total_trigram_overlap += trigram_overlap
+
+                spell_acc = total_spell_acc / num_samples
+                bigram_overlap = total_bigram_overlap / num_samples
+                trigram_overlap = total_trigram_overlap / num_samples
+
+                # Save metrics
+                with open(metrics_file, 'a', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([model_name, hidden_size, num_layers, temp, nucleus,
+                                     round(spell_acc, 2), round(bigram_overlap, 2), round(trigram_overlap, 2)])
+    print("\nGenerated Samples:")
+    for (model_name, temp, nucleus), text in generated_texts.items():
+        print(f"\n {model_name} | Temp: {temp} | Nucleus: {nucleus}")
+        print(text)
+
+
+def evaluate_best_model_with_configs():
+    start_time = time.time()
+
+    configs = [
+        {"bpe": False, "glove": False, "augment": False},
+        {"bpe": False, "glove": False, "augment": True},
+        {"bpe": True, "glove": False, "augment": False},
+        {"bpe": False, "glove": True, "augment": False},
+        {"bpe": True, "glove": False, "augment": True},
+        {"bpe": False, "glove": True, "augment": True},
+    ]
+
+    # Best model config (replace these with your best found values)
+    best_model_type = "lstm"
+    best_hidden_size = 64
+    best_lr = 0.001
+    best_batch_size = 32
+    best_num_layers = 2
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    temperature = TEMPERATURE
+    top_p = TOP_P
+    max_length = 200
+
+    # Initialize CSV + text log
+    metrics_file = "results_best_model_configs/metrics.csv"
+    os.makedirs("results_best_model_configs", exist_ok=True)
+    with open(metrics_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["BPE", "GloVe", "Augment", "Spelling Accuracy", "Bigram Overlap", "Trigram Overlap", "Last Epoch", "Last_val_loss", "Best_val_loss", "Model Path"])
+
+    generated_texts = {}
+
+    for i, cfg in enumerate(configs):
+        bpe, glove, augment = cfg["bpe"], cfg["glove"], cfg["augment"]
+        print(f"\nRunning config {i+1}/6: BPE={bpe}, GloVe={glove}, Augment={augment}")
+
+        # Dataset prep
+        if bpe:
+            train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text, tokenizer = prepare_bpe_datasets(seq_len=50, augment=augment)
+        elif glove:
+            train_dataset, val_dataset, word_to_idx, idx_to_word, K, training_text = prepare_datasets_word(seq_len=50, augment=augment)
+        else:
+            train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text = prepare_datasets(seq_len=50, augment=augment)
+
+        # Train
+        train_loss, val_loss, val_iter, train_iter, model, last_epoch = train(
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            char_to_ind=None if glove else char_to_ind,
+            ind_to_char=None if glove else ind_to_char,
+            K=K,
+            hidden_size=best_hidden_size,
+            lr=best_lr,
+            batch_size=best_batch_size,
+            num_layers=best_num_layers,
+            model_type=best_model_type,
+            epochs=30,
+            bpe=bpe,
+            tokenizer=tokenizer if bpe else None,
+            glove=glove,
+            word_to_idx=word_to_idx if glove else None,
+            idx_to_word=idx_to_word if glove else None
+        )
+
+        # Sample
+        if glove:
+            start_word = idx_to_word[np.random.randint(0, len(word_to_idx))]
+            generated_text = sample_word(model, start_word, word_to_idx, idx_to_word, length=max_length, device=device, temperature=temperature, top_p=top_p)
+        else:
+            start_char = np.random.choice(list(char_to_ind.keys()))
+            generated_text = sample(model, start_char, char_to_ind, ind_to_char, length=max_length, device=device, temperature=temperature, top_p=top_p, bpe=bpe, tokenizer=tokenizer if bpe else None)
+
+        # Save model
+        model_id = f"bpe={bpe}_glove={glove}_aug={augment}"
+        model_path = f"results_best_model_configs/model_{model_id}.pt"
+        torch.save(model.state_dict(), model_path)
+
+        # Store generated text
+        generated_texts[model_id] = generated_text
+
+        num_samples = 20
+        total_spell_acc = 0.0
+        total_bigram_overlap = 0.0
+        total_trigram_overlap = 0.0
+
+        for i in range(1, num_samples + 1):
+            # Sample
+            if glove:
+                start_word = idx_to_word[np.random.randint(0, len(word_to_idx))]
+                generated_text = sample_word(model, start_word, word_to_idx, idx_to_word, length=max_length,
+                                             device=device, temperature=temperature, top_p=top_p)
+            else:
+                start_char = np.random.choice(list(char_to_ind.keys()))
+                generated_text = sample(model, start_char, char_to_ind, ind_to_char, length=max_length, device=device,
+                                        temperature=temperature, top_p=top_p, bpe=bpe,
+                                        tokenizer=tokenizer if bpe else None)
+
+            spell_acc = spelling_accuracy(generated_text)
+            bigram_overlap = ngram_overlap(generated_text, training_text, n=2)
+            trigram_overlap = ngram_overlap(generated_text, training_text, n=3)
+
+            total_spell_acc += spell_acc
+            total_bigram_overlap += bigram_overlap
+            total_trigram_overlap += trigram_overlap
+
+        spell_acc = total_spell_acc / num_samples
+        bigram_overlap = total_bigram_overlap / num_samples
+        trigram_overlap = total_trigram_overlap / num_samples
+
+        # Save plot
+        name = f"BPE={bpe}_GloVe={glove}_Augment={augment}"
+        save_plot_final(train_loss, val_loss, val_iter, train_iter, name,
+                             save_dir=f"results_best_model_configs")
+
+        last_val = val_loss[-1]
+        best_val = min(val_loss)
+
+        # Save metrics
+        with open(metrics_file, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([bpe, glove, augment, round(spell_acc, 2), round(bigram_overlap, 2), round(trigram_overlap, 2), last_epoch, last_val, best_val, model_path])
+
+    # Save all generated texts
+    with open("results_best_model_configs/generated_texts_summary.txt", "w") as f:
+        for model_id, text in generated_texts.items():
+            f.write(f"\nModel Config: {model_id}: \n{text}\n")
+
+    elapsed_time = time.time() - start_time  # End timer
+    print(f"The whole training took {elapsed_time:.2f} seconds.")
+
+
+if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("Will be using", device)
 
-    #train_loss, val_loss, val_iter, train_iter, model = train()
-    main_grid_search()
+    # main_grid_search()
+
+    # grid_search_for_nucleus_and_temperature()
+
+    evaluate_best_model_with_configs()

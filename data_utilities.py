@@ -1,13 +1,20 @@
+import csv
 import os
-import random  # for random choices in augmentation
-import re
-
-import matplotlib.pyplot as plt
 import numpy as np
-import requests
 import torch
+import torch.nn as nn
+import requests
+import re
+from torch.utils.data import Dataset, DataLoader
+from torch.utils.hipify.hipify_python import value
+import matplotlib.pyplot as plt
+import nltk  # for WordNet and tokenization
 from nltk.corpus import wordnet  # lexical database for synonyms
-from torch.utils.data import Dataset
+import random  # for random choices in augmentation
+import itertools
+from spellchecker import SpellChecker
+import time
+from preprocessing_for_bpe import prepare_bpe_datasets
 
 
 # -------------------
@@ -230,3 +237,26 @@ def save_plot_and_losses(train_loss, val_loss, val_iter, train_iter, params, sav
     np.save(os.path.join(save_dir, f"val_loss_{param_str}.npy"), val_loss)
     np.save(os.path.join(save_dir, f"val_iter_{param_str}.npy"), val_iter)
     np.save(os.path.join(save_dir, f"train_iter_{param_str}.npy"), train_iter)
+
+def save_plot_final(train_loss, val_loss, val_iter, train_iter, name, save_dir="results"):
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Save plot
+    plt.figure(figsize=(6, 4))
+    plt.plot(train_iter, train_loss, label='Train Loss')
+    plt.plot(val_iter, val_loss, label='Validation Loss')
+    plt.xlabel('Update Steps')
+    plt.ylabel('Loss')
+    plt.title('Train vs Validation Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plot_path = os.path.join(save_dir, f"loss_plot_{name}.png")
+    plt.savefig(plot_path)
+    plt.close()
+
+    # Save raw data
+    np.save(os.path.join(save_dir, f"train_loss_{name}.npy"), train_loss)
+    np.save(os.path.join(save_dir, f"val_loss_{name}.npy"), val_loss)
+    np.save(os.path.join(save_dir, f"val_iter_{name}.npy"), val_iter)
+    np.save(os.path.join(save_dir, f"train_iter_{name}.npy"), train_iter)
