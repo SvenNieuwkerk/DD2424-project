@@ -1,0 +1,2 @@
+Model Type,Hidden Size,Learning Rate,Batch Size,Num Layers,Spelling Accuracy (%),Bigram Overlap (%),Trigram Overlap (%),Last Epoch,Model Path
+lstm,100,0.001,32,2,64.87,16.87,0.66,4,bpe/results_lstm/model_lstm_bs32_hs100_lr0.001_layers2.pt
