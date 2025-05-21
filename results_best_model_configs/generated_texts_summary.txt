@@ -1,74 +1,60 @@
 
 Model Config: bpe=False_glove=False_aug=False: 
-g fould be,
-    For a bead the world
-  Is nust with his haltes!
+birdy,
+  The lose away the honitaous the gales that could it, --
+The merels fly!
+And trawless her who windingus,
+And countaigy life
+Is sent to trundless swagy
 
-
-Balling in flashion and touch I stain,
-Or day us, a flown;
-His immortality of almost early too oution;
-But selet to the gener a
+Puldgled they noto counting look a
 
 Model Config: bpe=False_glove=False_aug=True: 
-efor,
-The did never scarcely ; . The eastle to those room .
+ëer would At bells thee.
 
-THE WESDE.
+THE MARTYRS.
 
-The from she targe That heaven gasteepend , And summer's creaty,
-Unon adenine , -- I will finisull borefore was shore,
+Deathless see the line honored their company , suffures of off dear , So murch at scraps the star;
+Love unfife length fortheal of little surgal bed.
 
-Th
+Their 
 
 Model Config: bpe=True_glove=False_aug=False: 
- say,
-A hurryle round his silver
-  Theriits but in my differentAt the thing
-And then I wish I don spied know;
-The last is dress in every little thing
-Their chiuckled like a bar
-A little only crand, I know it, --
-At ourself one intits not;
-If I was put in the house
-A awhe onegnure.
+imaterous sait
+  Some hand -- "us.
 
-God lauts is the regore
-To shook of wings,
-Of period of death.
+'T is sied on snows close the sky
+   Terlooked a stone;
+At God by the jockion.
 
-You rours in purpleaks out but their,
-And children to secure, rare;
-To see it back, though wetbed them,
-Till wes fplosicate
-Where this pakes never snow!
+The fridet kept long there Earished,
+Hroent with the soul.
+POOD.
+MERMYING.
 
-Her sun divide a bolding pigings.
+A trust that yet, myself,
+But now, too drop that Thaseless brw was such a glass.
+Look,
+As if I read the galesdenay,
 
-The neareary muateb
+The wind and stares the rest
+  And not't no go.
+
+It was for you to day.
+Her quietles is bliss,
+And fair from an basan and on the wor;
+The buser bore with hisont;
+Tell him my little girl where treoop behind,
+  For the fond
 
 Model Config: bpe=False_glove=True_aug=False: 
-'despair;' now: face beds," but wider my pain. I tug will not forgiven, I sun, for said to pass to hide, It that a little night At entertaining lone, I could not anterior to thee? It might not gurgle from chanticleer; To knew March, him I 'd rather for her wings Were Without not the years! presence Of tardy little seen, And then the thing were mine, And I the little bird, So bending upon the poles assembly If Fearless the way bestir, summer one seems set, Since if a single robin That brought the weight Of begets it inscrutable, -- delirious my squirrel flies her, They can cannot. all to glass, And we hope the emergency! wares with the attention Slipped who met know I residence of us The playthings of of drunken before; And have seen awake, His Who cannot not Apart, Love Chastened, it by the air or Death, Upon a punctual still; supercilious, love from its sea size. It was not be for you. Enabled of the dullness, The children mine, for a dew, That It would not state the sea; Who was you desire; When the steeple cricket, And other thing I THANKSGIVING nature asked the
+though. Bound briskly tiny day; THE HEMLOCK. my look than be, The starving fell on the heaven upon. Till the waters mind his way it, it had ended to crested I must not die: It 's all the heaven are done, I'd realm, clocks in Death, lay. There is a gallows is the archer's summer's night you're Much short joy new! How things my foot came, A memorial frontier Will beheld, to here, us on its sand From implements to seen; So too, of well! spied a wall, And flowers by the gold Is difficult as transport To I'm show I kept the coming slope a clew People dropped in heaven; Related women only from the thing I found it, keep the grandmamma, are. sundown in the soul Termed We that fair. and dust place tell! amid of her implement To hateful, Has him the village We died no silence at orchard, I said; THE TULIP. The bodiless of its day That she not "new But she never bore itself For period the Potomac, Yellow plucking, quietly with stone. THE Wisdom may go: seas, And even occasional did In she were spied, Is Might I were a fate to see, --
 
 Model Config: bpe=True_glove=False_aug=True: 
-cked down the springs the grass,
-But if the dew,
-Sauntered the God
-Ongetible her strroal old.
-
-Hife suit must want -- -- aap , The implement 's diptited to cross
-To often decker itself,
-Adcklance, in the chows --
-  Cermens me.
-
-I looked to counted there?
-
-Perhaps the dioar God.
-
-Fraiding mimhes, -- you.
-
-They dim their little acus and friby back , if 'TIN know . Since When exceptates puck , unats than the , ? furace , And Or apulate And I back Arlagrill Not fidentions out and fisonm , sky .
-A merrikes to the dawn , A chaber the fresh spectle ' Paradise
+pit left comm thation upon the surprise ; Yet winter for the ; pem chanwed astatine ; But not than women And by mamointed scant ! The best rockye and retenceast , Where wind improse centuries to ? And And satisfies me !
+wreckting flolles out to nolch , happy deven rill , sweet by , brip and That pidter plaush their fly . Achang volition super rank ; And he there . The 'T was no barp only Dod wer her look of road . The cuckhern tightllum emperor marent , When it . what I but you . adenine would angstrom how opusing it besides embody Whenself not assay a merles too dalting abandves to teie,
+Where cides of tares of alive,
+Aself we something the women followe glory he ? side you div
 
 Model Config: bpe=False_glove=True_aug=True: 
-red Any consciously, face Know her going to drink, And though we bore as me That how no way. A sunset upon the most foot On lowlier cars to die. Just it can decay; They'll the barefoot; Here no astir, And a turnpike finish be, -- A pod I recollect that behooveth it, swings when I never stare, With like of thee, But it side the privilege Of last too, gained! SHADOW. My brig, sweeps from dark, THE sceptic She stopped firm careers, And now, as her consolation Power I took the earth, -- You stand his contented did," lowlier Did we are this her we passed; It was a billow, Would there, by want stands blest to remember Our smile at her me; I could not do, a heaven mind, for the poorer I omit the whole. THE slowly as a spring strengthens, A face; I hear the sigh, Then blushing one door to wake the road. -- Our one name, And since the royal mountains Had letter! my door! I knew it thought if be Can like a distant Invites the clouds Was could been always be, -- On this long village, trains down my trees In much in
+condescending none, grave Surpasses frugal art reluctant how to me; And is no little go; Except with men Or doubly life Tradition in the mountains Whereas a faded in which the human stood On her silver displayed I hurts the little grave Drowning Her different old lark O asked a alabaster Next decks the world blot; She neigh went affords That I did not touched! I had seen, The hosts of skill, As a brig I know he touched my speech Had Since so stir the breast Is recede the pearl And put to suddenly Until a strangest reverent, Have is you From that every way. -- A orchis stands with the head The village of ground. concomitant Puts angels when sudden away. What why it how it see! I'm down from along. Or microscopes it tighter Aground, To by an dew, God. or he must be a light Sharp up its ages around a mould. I purple and a word Breaks These for the day? For March is those the manufacturing Peculiar Untouched by daisies of the starkest Wending graciously! So when he consummate Our lily WARDROBE. The druidic clause, Who sentinels. to Thee, As fingers shows sun; To East

@@ -22,18 +22,18 @@ BATCH_SIZE = 32
 HIDDEN_SIZE = 100
 EMBEDDING_DIM = 100  # 50, 100, 200, 300
 LEARNING_RATE = 0.001
-EPOCHS = 20
+EPOCHS = 30
 SAMPLE_INTERVAL = 1000
 SAMPLE_LENGTH = 200
 PATIENCE = 3
 TEMPERATURE = 0.9
 TOP_P = 0.95
-USE_GLOVE = True # cannot be used at the same time as bpe
+USE_GLOVE = False # cannot be used at the same time as bpe
 GLOVE_PATH_ANDREAS = fr'C:\Users\andre\DD2424-project\glove.6B\glove.6B.{EMBEDDING_DIM}d.txt' # download at: https://nlp.stanford.edu/projects/glove/
 GLOVE_PATH = fr'C:\ALL\Univerzita\Master Year 1\2B Deep Learning in Data Science\Project\glove.6B\glove.6B.{EMBEDDING_DIM}d.txt'
 USE_BPE = False # cannot be used at the same time as glove
 # AUGMENTATION PARAMETERS
-AUGMENT = True
+AUGMENT = False
 SR_RATIO = 0.1 # proportion of words for synonym replacement
 RI_RATIO = 0.1 # proportion of words for random insertion
 RS_RATIO = 0.1 # proportion of words for random swap
@@ -294,8 +294,7 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
     else:
         train_dataset, val_dataset, char_to_ind, ind_to_char, K, training_text = prepare_datasets(seq_len=50, augment=AUGMENT)
 
-    model_path = f"A={AUGMENT}"
-    model_path = "final_test"
+    model_path = f"A={AUGMENT}_BPE={USE_BPE}_GLOVE={USE_GLOVE}"
 
     model_types = ["lstm", "rnn"]
     hidden_sizes = [100]
@@ -341,7 +340,7 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
                 batch_size=batch_size,
                 num_layers=num_layers,
                 model_type=model_name,
-                epochs=2,
+                epochs=EPOCHS,
                 bpe = bpe,
                 tokenizer=tokenizer,
                 glove=False,
@@ -360,7 +359,7 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
                 batch_size=batch_size,
                 num_layers=num_layers,
                 model_type=model_name,
-                epochs=2,
+                epochs=EPOCHS,
                 bpe = bpe,
                 tokenizer=None,
                 glove=True,
@@ -379,7 +378,7 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
                 batch_size=batch_size,
                 num_layers=num_layers,
                 model_type=model_name,
-                epochs=2,
+                epochs=EPOCHS,
                 bpe=False,
                 tokenizer=None,
                 glove=False,
@@ -405,17 +404,6 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
         # === Sample text from model ===
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         #char_to_ind, ind_to_char = model.char_to_ind, model.ind_to_char  # If not saved in model, pass separately
-        """
-        if bpe:
-            start_char = np.random.choice(list(char_to_ind.keys()))
-            generated_text = sample(model, start_char, char_to_ind, ind_to_char, K, device=device,  temperature = TEMPERATURE, top_p = TOP_P, bpe=bpe, tokenizer=tokenizer)
-        elif glove:
-            start_word = idx_to_word[np.random.randint(0, len(word_to_idx))]
-            generated_text = sample_word(model, start_word, word_to_idx, idx_to_word, length=200, device=device, temperature = TEMPERATURE, top_p = TOP_P)
-        else:
-            start_char = np.random.choice(list(char_to_ind.keys()))
-            generated_text = sample(model, start_char, char_to_ind, ind_to_char, length=200, device=device,  temperature = TEMPERATURE, top_p = TOP_P, bpe = False)
-        """
 
         num_samples = 20
         total_spell_acc = 0.0
@@ -444,15 +432,9 @@ def main_grid_search(bpe = USE_BPE, glove=USE_GLOVE, augment=AUGMENT):
             total_bigram_overlap += bigram_overlap
             total_trigram_overlap += trigram_overlap
 
-            #print(f"Generated sample {i}/{num_samples}")
+            print(f"Generated sample {i}/{num_samples}")
 
         # === Compute metrics ===
-        """
-        spell_acc = spelling_accuracy(generated_text)
-        bigram_overlap = ngram_overlap(generated_text, training_text, n=2)
-        trigram_overlap = ngram_overlap(generated_text, training_text, n=3)
-        """
-
         spell_acc = total_spell_acc / num_samples
         bigram_overlap = total_bigram_overlap / num_samples
         trigram_overlap = total_trigram_overlap / num_samples
@@ -510,8 +492,8 @@ def grid_search_for_nucleus_and_temperature():
     temperatures = [0.6, 0.8, 0.9, 1, 1.1, 1.2]
     nucleus_probs = [0.85, 0.9, 0.95, 0.99]
 
-    metrics_file = "results_n_t_best_models/metrics.csv"
-    os.makedirs("results_n_t_best_models", exist_ok=True)
+    metrics_file = "results_n_t_best_models_delete/metrics.csv"
+    os.makedirs("results_n_t_best_models_delete", exist_ok=True)
 
     # Initialize CSV
     with open(metrics_file, 'w', newline='') as f:
@@ -559,6 +541,8 @@ def grid_search_for_nucleus_and_temperature():
                     total_spell_acc += spell_acc
                     total_bigram_overlap += bigram_overlap
                     total_trigram_overlap += trigram_overlap
+
+                    print(f"Generated sample {i}/{num_samples}")
 
                 spell_acc = total_spell_acc / num_samples
                 bigram_overlap = total_bigram_overlap / num_samples
@@ -632,7 +616,7 @@ def evaluate_best_model_with_configs():
             batch_size=best_batch_size,
             num_layers=best_num_layers,
             model_type=best_model_type,
-            epochs=30,
+            epochs=EPOCHS,
             bpe=bpe,
             tokenizer=tokenizer if bpe else None,
             glove=glove,
@@ -680,6 +664,8 @@ def evaluate_best_model_with_configs():
             total_spell_acc += spell_acc
             total_bigram_overlap += bigram_overlap
             total_trigram_overlap += trigram_overlap
+
+            print(f"Generated sample {i}/{num_samples}")
 
         spell_acc = total_spell_acc / num_samples
         bigram_overlap = total_bigram_overlap / num_samples

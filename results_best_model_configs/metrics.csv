@@ -1,7 +1,7 @@
-BPE,GloVe,Augment,Spelling Accuracy,Bigram Overlap,Trigram Overlap,Model Path
-False,False,False,71.05,5.41,0.0,results_best_model_configs/model_bpe=False_glove=False_aug=False.pt
-False,False,True,72.97,25.0,5.71,results_best_model_configs/model_bpe=False_glove=False_aug=True.pt
-True,False,False,68.87,27.62,1.92,results_best_model_configs/model_bpe=True_glove=False_aug=False.pt
-False,True,False,81.09,36.0,4.52,results_best_model_configs/model_bpe=False_glove=True_aug=False.pt
-True,False,True,68.52,28.04,1.89,results_best_model_configs/model_bpe=True_glove=False_aug=True.pt
-False,True,True,81.09,32.0,5.53,results_best_model_configs/model_bpe=False_glove=True_aug=True.pt
+BPE,GloVe,Augment,Spelling Accuracy,Bigram Overlap,Trigram Overlap,Last Epoch,Last_val_loss,Best_val_loss,Model Path
+False,False,False,68.29,19.12,1.22,7,1.704094755728513,1.6808159830291276,results_best_model_configs/model_bpe=False_glove=False_aug=False.pt
+False,False,True,78.4,23.59,1.62,7,1.7243737313921088,1.706185519037394,results_best_model_configs/model_bpe=False_glove=False_aug=True.pt
+True,False,False,68.65,22.25,2.21,5,6.198432214604984,5.087912739447828,results_best_model_configs/model_bpe=True_glove=False_aug=False.pt
+False,True,False,81.69,32.88,3.67,4,8.87765798321018,7.873237560321758,results_best_model_configs/model_bpe=False_glove=True_aug=False.pt
+True,False,True,71.62,28.2,2.74,4,5.703482424156575,4.849119986159892,results_best_model_configs/model_bpe=True_glove=False_aug=True.pt
+False,True,True,82.21,33.7,3.72,4,8.847620679186535,7.974991755052046,results_best_model_configs/model_bpe=False_glove=True_aug=True.pt
