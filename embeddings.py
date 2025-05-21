@@ -11,6 +11,7 @@ def load_glove_embeddings(glove_path, word_to_idx, embedding_dim):
             word = parts[0]
             vec = np.array(parts[1:], dtype=np.float32)
             if word in word_to_idx:
+                word = word.lower()
                 idx = word_to_idx[word]
                 embedding_matrix[idx] = vec
     return torch.tensor(embedding_matrix, dtype=torch.float)
@@ -34,7 +35,8 @@ class TwoLayerLSTMWord(nn.Module):
         # Weight Tying improves the performance of language models by tying (sharing)
         # the weights of the embedding and softmax layers. This method also massively reduces the
         # total number of parameters in the language models that it is applied to.
-        self.fc.weight = self.embedding.weight
+        if hidden_size == embedding_dim:
+            self.fc.weight = self.embedding.weight
         self.freeze_embed_epochs = freeze_embed_epochs
 
     def forward(self, x, hidden=None):

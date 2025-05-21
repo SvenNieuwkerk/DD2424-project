@@ -141,6 +141,11 @@ def train(train_dataset, val_dataset, char_to_ind, ind_to_char, K,
     step = 0
     for epoch in range(1, epochs+1):
         model.train()
+        if glove:
+            if epoch <= model.freeze_embed_epochs:
+                model.embedding.weight.requires_grad = False
+            else:
+                model.embedding.weight.requires_grad = True
         hidden = None
         for x_batch, y_batch in train_loader:
             x_batch = x_batch.to(device)
