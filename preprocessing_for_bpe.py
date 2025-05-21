@@ -1,9 +1,12 @@
-import requests, re, torch
-from tokenizers.implementations import ByteLevelBPETokenizer
-from torch.utils.data import Dataset
 import unicodedata
+from tokenizers.implementations import ByteLevelBPETokenizer
+import nltk
+nltk.download('punkt_tab')
 
-def load_poems():
+from data_utilities import *
+
+
+def load_poems_OLD():
     url = "https://www.gutenberg.org/cache/epub/12242/pg12242.txt"
     r = requests.get(url); r.encoding = "utf-8"
     raw = r.text
@@ -63,6 +66,81 @@ class BPEDataset(Dataset):
                 torch.tensor(self.y[i],dtype=torch.long))
 
 def prepare_bpe_datasets(seq_len=50,
+                         out_path="output.txt",
+                         bpe_prefix="bpe",
+                         vocab_size=3000,
+                         min_frequency=2,
+                         test_vocab_size = False,
+                         augment = False,
+                         sr_ratio=0.1,
+                         ri_ratio=0.1,
+                         rs_ratio=0.1,
+                         rd_prob=0.1,
+                         num_augment=1):
+
+    original_poems = load_poems()
+    split_idx = int(0.9 * len(original_poems))
+    train_poems = original_poems[:split_idx]
+    val_poems   = original_poems[split_idx:]
+
+
+    if augment:
+        augmented_poems = []
+        for poem in train_poems:
+            words = nltk.word_tokenize(poem)
+
+            aug_word_lists = eda(
+                words,
+                sr_ratio=sr_ratio,
+                ri_ratio=ri_ratio,
+                rs_ratio=rs_ratio,
+                rd_prob=rd_prob,
+                num_aug=num_augment
+            )
+
+            for awl in aug_word_lists:
+                augmented_poems.append(" ".join(awl))
+
+
+        final_train_poems = train_poems + augmented_poems
+    else:
+        final_train_poems = train_poems
+
+    full_text_original  = "\n".join(original_poems)
+    train_text = "\n".join(final_train_poems)
+    val_text   = "\n".join(val_poems)
+
+
+    preprocces_text_for_byte_pair(final_train_poems, out_path=out_path)
+
+    # Train tokenizer (writes bpe-vocab.json & bpe-merges.txt) ---
+    train_tokenizer(input_path=out_path,
+                    vocab_size=vocab_size,
+                    min_freq=min_frequency,
+                    prefix=bpe_prefix)
+
+    tokenizer = load_trained_tokenizer(prefix=bpe_prefix)
+    train_encoding = tokenizer.encode(train_text, add_special_tokens=False)
+    val_encoding = tokenizer.encode(val_text, add_special_tokens=False)
+    train_ids = train_encoding.ids
+    val_ids = val_encoding.ids
+
+    token_to_id = tokenizer.get_vocab()
+    if test_vocab_size:
+        freqs = sorted(token_to_id.values(), reverse=True)
+        # Percent of tokens seen ≥100 times
+        percent = sum(1 for f in freqs if f >= 100) / len(freqs) * 100
+        print(f"{percent:.1f}% of tokens ≥100 occurrences")
+    id_to_token = {i:t for t,i in token_to_id.items()}
+    K           = len(token_to_id)
+
+    train_ds = BPEDataset(train_ids, seq_len)
+    val_ds   = BPEDataset(val_ids,   seq_len)
+
+    return train_ds, val_ds, token_to_id, id_to_token, K, train_text, tokenizer
+
+#OLD PREPARE DATASET
+def prepare_bpe_datasets_old(seq_len=50,
                          poems=True,
                          out_path="output.txt",
                          bpe_prefix="bpe",
@@ -114,4 +192,4 @@ def prepare_bpe_datasets(seq_len=50,
     # --- 7) Return same signature as before ---
     return train_ds, val_ds, token_to_id, id_to_token, K, train_text, tokenizer
 
-prepare_bpe_datasets(test_vocab_size=True)
+#prepare_bpe_datasets(test_vocab_size=True)

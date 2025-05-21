@@ -1,0 +1,2 @@
+Model Type,Hidden Size,Learning Rate,Batch Size,Num Layers,Spelling Accuracy (%),Bigram Overlap (%),Trigram Overlap (%),Last Epoch,Model Path
+lstm,100,0.001,32,2,81.09,24.5,1.01,2,A=True
